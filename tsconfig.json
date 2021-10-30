@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "es2019",
+    "module": "esnext",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./build",
+    "strict": true,
+    "types": [ "jest", "node", "reflect-metadata" ],
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "removeComments": true,
+    "inlineSources": true
+  },
+  "include": [
+    "src"
+  ],
+  "typedocOptions": {
+    "out": "./docs/api",
+    "hideGenerator": true,
+    "readme": "docs/README.md",
+    "exclude": ["./test/*.ts", "./src/builtin.ts", "./src/index.ts"],
+    "name" : "Jsonizer",
+    "includeVersion": true
+  }
+}

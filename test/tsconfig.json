@@ -1,0 +1,15 @@
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "outDir": "../build/test",
+        "types": ["jest", "node"],
+        "rootDir": "..",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "jsx": "preserve",
+        "lib": ["es2020", "dom"]
+    },
+    "include": [".", "../src"]
+}

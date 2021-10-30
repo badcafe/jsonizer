@@ -1,0 +1,124 @@
+{
+  "name": "@badcafe/jsonizer",
+  "version": "1.0.0",
+  "description": "Easy nested instance reviving for JSON",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.esm.js",
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE.txt"
+  ],
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "jest --runInBand --verbose",
+    "test:watch": "jest --runInBand --watchAll",
+    "compile": "tsc -b",
+    "postcompile": "rollup -c",
+    "eslint": "eslint src",
+    "site:prepare:reports:sloc": "sloc -e tests --format json src/ > scripts/sloc-report.json",
+    "site:prepare:reports:sloc:tests": "sloc --format json test > scripts/sloc-tests-report.json",
+    "site:prepare:reports:eslint": "eslint -f json -o scripts/eslint-report.json src || :",
+    "site:prepare:reports:jest": "jest --noStackTrace --silent --json --outputFile='scripts/jest-report.json' || :",
+    "site:prepare:reports": "npm run site:prepare:reports:sloc && npm run site:prepare:reports:sloc:tests && npm run site:prepare:reports:eslint && npm run site:prepare:reports:jest",
+    "site:assemble:reports": "node --experimental-modules --experimental-specifier-resolution=node --loader ts-node/esm.mjs scripts/reports.ts",
+    "site:assemble:api": "typedoc --tsconfig tsconfig.json --sourcefile-url-prefix \"https://github.com/badcafe/jsonizer/tree/master/lib/src/\" src",
+    "site:assemble": "npm run site:assemble:reports && npm run site:assemble:api",
+    "presite": "npm run site:prepare:reports && npm run site:assemble",
+    "site": "docsify --port 4455 serve ./docs",
+    "site:init": "require('docsify-cli')('./docs')"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/badcafe/jsonizer.git"
+  },
+  "author": "Philippe Poulard <philippe.poulard@inria.fr>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/badcafe/jsonizer/issues"
+  },
+  "homepage": "https://badcafe.github.io/jsonizer",
+  "keywords": [
+    "JSON",
+    "reviver",
+    "replacer",
+    "parse",
+    "stringify",
+    "toJSON",
+    "fromJSON",
+    "class",
+    "nested",
+    "hierarchy",
+    "marshall",
+    "marshaller",
+    "unmarshall",
+    "unmarshaller",
+    "typescript",
+    "inria"
+  ],
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^17.0.0",
+    "@rollup/plugin-node-resolve": "^11.1.0",
+    "@types/jest": "^26.0.23",
+    "@types/node": "^15.0.2",
+    "@typescript-eslint/eslint-plugin": "^4.27.0",
+    "@typescript-eslint/parser": "^4.27.0",
+    "docsify": "^4.12.1",
+    "docsify-cli": "^4.4.3",
+    "eslint": "^7.28.0",
+    "jest": "^26.6.3",
+    "rollup": "^2.38.0",
+    "rollup-plugin-typescript2": "^0.29.0",
+    "sloc": "^0.2.1",
+    "ts-jest": "^26.4.4",
+    "ts-node": "^9.1.1",
+    "typedoc": "^0.20.36",
+    "typedoc-plugin-sourcefile-url": "^1.0.6",
+    "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.1.13"
+  },
+  "jest": {
+    "roots": [
+      "test"
+    ],
+    "verbose": true,
+    "preset": "ts-jest/presets/default",
+    "testEnvironment": "node",
+    "globals": {
+      "ts-jest": {
+        "tsconfig": "test/tsconfig.json",
+        "useESM": true
+      }
+    }
+  },
+  "eslintConfig": {
+    "root": true,
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/eslint-recommended",
+      "plugin:@typescript-eslint/recommended"
+    ],
+    "rules": {
+      "no-inner-declarations": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-namespace": "off",
+      "@typescript-eslint/no-non-null-assertion": "off",
+      "@typescript-eslint/ban-types": "off",
+      "@typescript-eslint/explicit-module-boundary-types": "off"
+    }
+  },
+  "eslintIgnore": [
+    "build",
+    "dist",
+    "test",
+    "node_modules"
+  ]
+}
