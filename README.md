@@ -6,11 +6,11 @@
 
 > **Easy nested instance reviving for JSON**
 
+`@badcafe/jsonizer` is a [Typescript](https://www.typescriptlang.org/) library that takes care of instances of classes in the hierarchy of your data structure when you use `JSON.stringify()` and `JSON.parse()`.
+
 <p style='align: center'>
     <img src="docs/matryoshka.svg"/>
 </p>
-
-`@badcafe/jsonizer` <img style="float: right" src="/docs/matryoshka.svg" width="50%"/> is a [Typescript](https://www.typescriptlang.org/) library that takes care of instances of classes in the hierarchy of your data structure when you use `JSON.stringify()` and `JSON.parse()`.
 
 <a href="http://badcafe.github.io/jsonizer">Full documentation and API available HERE</a>
 
