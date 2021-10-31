@@ -14,7 +14,7 @@ Jsonizer can indifferently revive JSON data structures (arrays, objects) or clas
 
 ### License
 
-[MIT](https://github.com/badcafe/jsonizer/LICENSE.txt)
+[MIT](https://github.com/badcafe/jsonizer/blob/master/LICENSE.txt)
 
 ### Install
 

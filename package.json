@@ -24,7 +24,7 @@
     "site:prepare:reports:jest": "jest --noStackTrace --silent --json --outputFile='scripts/jest-report.json' || :",
     "site:prepare:reports": "npm run site:prepare:reports:sloc && npm run site:prepare:reports:sloc:tests && npm run site:prepare:reports:eslint && npm run site:prepare:reports:jest",
     "site:assemble:reports": "node --experimental-modules --experimental-specifier-resolution=node --loader ts-node/esm.mjs scripts/reports.ts",
-    "site:assemble:api": "typedoc --tsconfig tsconfig.json --sourcefile-url-prefix \"https://github.com/badcafe/jsonizer/tree/master/lib/src/\" src",
+    "site:assemble:api": "typedoc --tsconfig tsconfig.json --sourcefile-url-prefix \"https://github.com/badcafe/jsonizer/blob/master/src/\" src",
     "site:assemble": "npm run site:assemble:reports && npm run site:assemble:api",
     "presite": "npm run site:prepare:reports && npm run site:assemble",
     "site": "docsify --port 4455 serve ./docs",
