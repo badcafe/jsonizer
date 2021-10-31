@@ -1,12 +1,12 @@
 # Jsonizer 
 
 <div class="nopub" style='margin: 20px; padding: 20px; border: solid 3px'>
-    <a href="http://badcafe.github.io/jsonizer">Published version of this page available HERE</a>
+    <a href="http://badcafe.github.io/site/jsonizer">Published version of this page available HERE</a>
 </div>
 
 > **Easy nested instance reviving for JSON**
 
-`@badcafe/jsonizer` <img style="float: right" src="/matryoshka.svg" width="50%"/> is a [Typescript](https://www.typescriptlang.org/) library that takes care of instances of classes in the hierarchy of your data structure when you use `JSON.stringify()` and `JSON.parse()`.
+`@badcafe/jsonizer` <img style="float: right" src="matryoshka.svg" width="50%"/> is a [Typescript](https://www.typescriptlang.org/) library that takes care of instances of classes in the hierarchy of your data structure when you use `JSON.stringify()` and `JSON.parse()`.
 
 Jsonizer mainly supplies a decorator (`@Reviver`) that describes how to revive classes, and two helper functions (`Jsonizer.reviver()` and `Jsonizer.replacer()`).
 

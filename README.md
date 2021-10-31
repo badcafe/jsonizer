@@ -1,7 +1,7 @@
 # Jsonizer 
 
 <div style='margin: 20px; padding: 20px; border: solid 3px'>
-    <a href="http://badcafe.github.io/jsonizer">Full documentation available HERE</a>
+    <a href="http://badcafe.github.io/site/jsonizer">Full documentation available HERE</a>
 </div>
 
 > **Easy nested instance reviving for JSON**
@@ -12,9 +12,4 @@
     <img src="docs/matryoshka.svg"/>
 </p>
 
-<a href="http://badcafe.github.io/jsonizer">Full documentation and API available HERE</a>
-
-<p style='align: center'>
-    by
-    <img src="docs/inria_logo.svg"/>
-</p>
+<a href="http://badcafe.github.io/site/jsonizer">Full documentation and API available HERE</a>
