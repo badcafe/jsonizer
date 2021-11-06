@@ -217,6 +217,9 @@ export namespace Namespace {
                 throw err;
             }
             return cl[0];
+        } else if (qname.endsWith('Error')) {
+            // custom errors might not be registered, go with it
+            return Error as any;
         } else {
             const err = new Error(`"${qname}" not found in registry`);
             err.name = 'Missing name';

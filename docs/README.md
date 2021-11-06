@@ -418,9 +418,26 @@ As mentionned previously, a mapper can refer a class decorated with `@Reviver`:
 * ```'*': Hobby  // 👈  user class ```
 * ```birthDate: Date // 👈  javascript class ```
 
-Jsonizer supplies revivers for few built-in classes : `Date`, `Error` and `RegExp`.
+Jsonizer supplies revivers for few built-in classes :
+* `Date`,
+* `RegExp`,
+* `Error`
 
 Jsonizer's `Reviver` class has also its reviver, that allow **to revive a reviver** like any other class (see below).
+
+> #### Errors
+> By default Javascript doesn't serialize the type and the message of an error :
+> ```javascript
+> JSON.stringify(new TypeError('Ooops !'));
+> // '{}'
+> // for a custom error, only its own fields will be serialized
+> ```
+> However Javascript can display a string representation :
+> ```javascript
+> String(new TypeError('Ooops !'));
+> // 'TypeError: Ooops !'
+> ```
+> By default, Asynchronizer will serialize that string representation, and will revive errors even if the error class is unknown. Custom errors can of course be processed like any other classes and will be revived if the error class is known at runtime.
 
 ### The `'.'` (self) builder
 
