@@ -1,6 +1,6 @@
 {
   "name": "@badcafe/jsonizer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Easy nested instance reviving for JSON",
   "type": "module",
   "main": "dist/index.cjs",
