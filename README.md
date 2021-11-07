@@ -1,7 +1,7 @@
 # Jsonizer 
 
 <div style='margin: 20px; padding: 20px; border: solid 3px'>
-    <a href="http://badcafe.github.io/site/jsonizer">Full documentation available HERE</a>
+    <a href="http://badcafe.github.io/jsonizer">Full documentation available HERE</a>
 </div>
 
 > **Easy nested instance reviving for JSON**
@@ -12,4 +12,47 @@
     <img src="docs/matryoshka.svg"/>
 </p>
 
-<a href="http://badcafe.github.io/site/jsonizer">Full documentation and API available HERE</a>
+### Overview
+
+`@badcafe/jsonizer` is a library that takes care of instances of classes in the hierarchy of your data structure when you use `JSON.stringify()` and `JSON.parse()`.
+
+<a href="http://badcafe.github.io/jsonizer">Full documentation and API available HERE</a>
+
+Let's consider some data :
+
+```typescript
+const person = {
+    name: 'Bob',
+    birthDate: new Date('1998-10-21'),
+    hobbies: [
+        {   hobby: 'programming',
+            startDate: new Date('2021-01-01'),
+        },
+        {   hobby: 'cooking',
+            startDate: new Date('2020-12-31'),
+        },
+    ]
+}
+const personJson = JSON.stringify(person);
+// store or send the data
+```
+
+Now, let's use **Jsonizer** 😍
+
+```typescript
+const personReviver = Jsonizer.reviver<typeof person>({
+    birthDate: Date,
+    hobbies: {
+        '*': {
+            startDate: Date
+        }
+    }
+});
+const personFromJson = JSON.parse(personJson, personReviver);
+```
+
+Every dates string in the JSON text have been mapped to `Date` objects in the parsed result.
+
+**Jsonizer** can indifferently revive JSON data structures (arrays, objects) or class instances with recursively nested custom classes, third-party classes, built-in classes, or sub JSON structures (arrays, objects).
+
+<a href="http://badcafe.github.io/jsonizer">Full documentation and API available HERE</a>

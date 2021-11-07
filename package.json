@@ -1,6 +1,6 @@
 {
   "name": "@badcafe/jsonizer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Easy nested instance reviving for JSON",
   "type": "module",
   "main": "dist/index.cjs",
@@ -39,7 +39,7 @@
   "bugs": {
     "url": "https://github.com/badcafe/jsonizer/issues"
   },
-  "homepage": "https://badcafe.github.io/site/jsonizer",
+  "homepage": "https://badcafe.github.io/jsonizer",
   "keywords": [
     "JSON",
     "reviver",

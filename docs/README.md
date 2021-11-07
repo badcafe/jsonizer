@@ -1,7 +1,8 @@
 # Jsonizer 
 
 <div class="nopub" style='margin: 20px; padding: 20px; border: solid 3px'>
-    <a href="http://badcafe.github.io/site/jsonizer">Published version of this page available HERE</a>
+    <a href="http://badcafe.github.io/jsonizer">Published version of this page available HERE</a>
+    <br/>
 </div>
 
 > **Easy nested instance reviving for JSON**
