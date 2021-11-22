@@ -1,101 +1,13 @@
-import 'reflect-metadata';
-
-/**
- * Any class
- */
- export type Class<T = any> = { new(...args: any[]): T }
-
-/**
- * Decorator that defines the namespace of a class, and
- * registers it for later lookup by name.
- * 
- * In case of conflict, classes can be relocated by using
- * this function not as a decorator, but as a normal function.
- * 
- * > ℹ️  This is unrelated to Typescript namespaces ! 
- * 
- * ## Usage as a decorator
- * 
- * ```
- * ⓐNamespace('org.example.myApp')
- * class Foo {}
- *     // 👆 qualified name set to 'org.example.myApp.Foo'
- * 
- * // setting a relative namespace :
- * ⓐNamespace(Foo)
- * class Bar {}
- *     // 👆 qualified name set to 'org.example.myApp.Foo.Bar'
- * 
- * class Baz {}
- *
- * ⓐNamespace(Baz)
- * class Qux {}
- *     // 👆 qualified name set to 'Baz.Qux'
- * ```
- * 
- * ## Usage as a function
- * 
- * ```
- * // setting a namespace to an existing class :
- * import { Quux } from 'quuxLib';
- * Namespace('org.example.myApp')(Quux)
- *                              // 👆 qualified name set to
- *                              // 'org.example.myApp.Quux'
- * 
- * // relocating a class
- * Namespace('org.example.myApp')(Baz)
- *                              // 👆 qualified name set to
- *                              // 'org.example.myApp.Baz'
- * // and incidentally, Qux subordinate qualified name
- * //                       set to 'org.example.myApp.Baz.Qux'
- * 
- * ```
- * 
- * ## Default namespace
- * 
- * ```
- * ⓐNamespace('')
- * class Corge {}
- *     // 👆 qualified name set to 'Corge'
- * ```
- */
-export function Namespace(ns: Class | string): (target: Class) => void {
-    return (target: Class) => {
-        // remove previous qname from registry
-        unregisterClass(target);
-        // new qname
-        Reflect.defineMetadata(Namespace.$, ns, target);
-        const qn = Namespace.getQualifiedName(target);
-        // new entries in registry
-        registerClassByQualifiedName(qn, target);
-    }
-}
-
-const registry = new Map<string, Class[]>();
-
-function unregisterClass(target: Class) {
-    const qn = Namespace.getQualifiedName(target)
-    const cl = registry.get(qn);
-    if (cl) {
-        const i = cl.findIndex(o => o === target);
-        if (i !== -1) {
-            cl.splice(i, 1); // done !
-        }
-    }
-}
-
-function registerClassByQualifiedName(qn: string, target: Class) {
-    // new entries in registry
-    const classes = registry.get(qn);
-    if (! classes) {
-        registry.set(qn, [target]);
-    } else if (! classes?.includes(target)) {
-        classes?.push(target);
-    } // else same class already registered
-}
-
 /**
  * ## Hold the registry of classes
+ * 
+ * The purpose of Jsonizer's namespaces is to let classes **knowing** their
+ * fully qualified name.
+ * 
+ * > Javascript and Typescript can group items together under namespaces,
+ * > which lead roughly to a hierarchy of objects, but the items themselves
+ * > when they are classes don't have the knowledge of the hierarchy they
+ * > belong to.
  * 
  * Each class has its own identity but in order **to refer them**
  * by name properly it is necessary to introduce namespaces.
@@ -150,6 +62,8 @@ function registerClassByQualifiedName(qn: string, target: Class) {
  * 
  * > ℹ️  This is unrelated to Typescript namespaces !
  * 
+ * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=namespaces)
+ * 
  * ## Code splitting (lazy loading)
  * 
  * Modern Javascript bundlers allow in some circumstances
@@ -162,13 +76,119 @@ function registerClassByQualifiedName(qn: string, target: Class) {
  * 
  * Typically, this can be done by importing them in the
  * app entry point.
+ * 
+ * @module
  */
+import 'reflect-metadata';
+
+/**
+ * Any class
+ * 
+ * @paramType Type - The class type
+ * @paramType Args - The arguments of the constructor
+ */
+ export type Class<Type = any, Args extends any[] = any[]> = { new(...args: Args): Type }
+
+/**
+ * Decorator that defines the namespace of a class, and
+ * registers it for later lookup by name.
+ * 
+ * In case of conflict, classes can be relocated by using
+ * this function not as a decorator, but as a normal function.
+ * 
+ * > ℹ️  This is unrelated to Typescript namespaces ! 
+ * 
+ * ## Usage as a decorator
+ * 
+ * ```
+ * ⓐNamespace('org.example.myApp')
+ * class Foo {}
+ *     // 👆 qualified name set to 'org.example.myApp.Foo'
+ * 
+ * // setting a relative namespace :
+ * ⓐNamespace(Foo)
+ * class Bar {}
+ *     // 👆 qualified name set to 'org.example.myApp.Foo.Bar'
+ * 
+ * class Baz {}
+ *
+ * ⓐNamespace(Baz)
+ * class Qux {}
+ *     // 👆 qualified name set to 'Baz.Qux'
+ * ```
+ * 
+ * ## Usage as a function
+ * 
+ * ```
+ * // setting a namespace to an existing class :
+ * import { Quux } from 'quuxLib';
+ * Namespace('org.example.myApp')(Quux)
+ *                              // 👆 qualified name set to
+ *                              // 'org.example.myApp.Quux'
+ * 
+ * // relocating a class
+ * Namespace('org.example.myApp')(Baz)
+ *                              // 👆 qualified name set to
+ *                              // 'org.example.myApp.Baz'
+ * // and incidentally, Qux subordinate qualified name
+ * //                       set to 'org.example.myApp.Baz.Qux'
+ * 
+ * ```
+ * 
+ * ## Default namespace
+ * 
+ * ```
+ * ⓐNamespace('')
+ * class Corge {}
+ *     // 👆 qualified name set to 'Corge'
+ * ```
+ * 
+ * @see [[Namespace.getClass]]
+ * @see [[Namespace.getQualifiedName]]
+ * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=namespaces)
+ */
+export function Namespace(ns: Class | string): (target: Class) => void {
+    return (target: Class) => {
+        // remove previous qname from registry
+        unregisterClass(target);
+        // new qname
+        Reflect.defineMetadata(Namespace.$, ns, target);
+        const qn = Namespace.getQualifiedName(target);
+        // new entries in registry
+        registerClassByQualifiedName(qn, target);
+    }
+}
+
+const registry = new Map<string, Class[]>();
+
+function unregisterClass(target: Class) {
+    const qn = Namespace.getQualifiedName(target)
+    const cl = registry.get(qn);
+    if (cl) {
+        const i = cl.findIndex(o => o === target);
+        if (i !== -1) {
+            cl.splice(i, 1); // done !
+        }
+    }
+}
+
+function registerClassByQualifiedName(qn: string, target: Class) {
+    // new entries in registry
+    const classes = registry.get(qn);
+    if (! classes) {
+        registry.set(qn, [target]);
+    } else if (! classes?.includes(target)) {
+        classes?.push(target);
+    } // else same class already registered
+}
+
 export namespace Namespace {
 
     /**
      * Metadata key.
      */
-    export const $ = Symbol.for('@badcafe/jsonizer.Namespace');
+    export const $ = Symbol.for('npm:@badcafe/jsonizer.Namespace');
+    // Same as `${Jsonizer.NAMESPACE}.Namespace` but DO NOT import it
 
     /**
      * Indicates whether a class has a namespace or not.
@@ -185,14 +205,14 @@ export namespace Namespace {
      * @param target The target class.
      * @returns Its name preceded by its namespace, if any.
      */
-    export function getQualifiedName(target: object): string {
+    export function getQualifiedName(target: Class): string {
         const ns = Reflect.getMetadata(Namespace.$, target);
         if (typeof ns === 'string' && ns.length > 0) {
-            return `${ns}.${(target as any).name}`;
+            return `${ns}.${target.name}`;
         } else if (ns) {
-            return `${getQualifiedName(ns)}.${(target as any).name}`;
+            return `${getQualifiedName(ns)}.${target.name}`;
         } else {
-            return (target as any).name;
+            return target.name;
         }
     }
 
@@ -212,7 +232,7 @@ export namespace Namespace {
         if (cl) {
             if (cl.length > 1) {
                 const err = new Error(`"${qname}" was registered ${cl.length === 2 ? 'twice' : `${cl.length} times`
-                    }.\nConsider declaring "Namespace()" on the classes.`);
+                    }. Consider declaring "Namespace()" on the classes. (409)`);
                 err.name = 'Name conflict';
                 throw err;
             }
@@ -221,7 +241,7 @@ export namespace Namespace {
             // custom errors might not be registered, go with it
             return Error as any;
         } else {
-            const err = new Error(`"${qname}" not found in registry`);
+            const err = new Error(`"${qname}" not found in registry (404)`);
             err.name = 'Missing name';
             throw err;
         }
