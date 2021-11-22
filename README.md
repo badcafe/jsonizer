@@ -1,7 +1,7 @@
 # Jsonizer 
 
 <div style='margin: 20px; padding: 20px; border: solid 3px'>
-    <a href="http://badcafe.github.io/jsonizer">Full documentation available HERE</a>
+    <a href="http://badcafe.github.io/jsonizer">Full documentation and API available HERE</a>
 </div>
 
 > **Easy nested instance reviving for JSON**
@@ -13,8 +13,6 @@
 </p>
 
 ### Overview
-
-`@badcafe/jsonizer` is a library that takes care of instances of classes in the hierarchy of your data structure when you use `JSON.stringify()` and `JSON.parse()`.
 
 <a href="http://badcafe.github.io/jsonizer">Full documentation and API available HERE</a>
 

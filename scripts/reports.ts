@@ -137,7 +137,7 @@ ${esl.filter(file => ! file.filePath.endsWith('/index.ts'))
 ${jest.wasInterrupted ? '💥 Tests interrupted !': ''}
 
 ${jest.testResults.map((suite: any) => `
-### ${statusIcon(suite.status)} \`${suite.name.substring(suite.name.indexOf('/test/'))}\` **${(suite.endTime - suite.startTime) / 1000}s** ${(suite.endTime - suite.startTime) / 1000 > 5 ? '🐢': ''}
+### ${statusIcon(suite.status)} \`${suite.name.substring(suite.name.indexOf('/test/'))}\` **${(suite.endTime - suite.startTime) / 1000}s** ${(suite.endTime - suite.startTime) / 1000 > 5 ? '🐢': ''} <!-- {docsify-ignore} -->
 
 ${suite.assertionResults.length === 0
     ? ''

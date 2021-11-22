@@ -13,17 +13,17 @@ Jsonizer mainly supplies a decorator (`@Reviver`) that describes how to revive c
 
 Jsonizer can indifferently revive JSON data structures (arrays, objects) or class instances with recursively nested custom classes, third-party classes, built-in classes, or sub JSON structures (arrays, objects).
 
-### License
+### License <!-- {docsify-ignore} -->
 
 [MIT](https://github.com/badcafe/jsonizer/blob/master/LICENSE.txt)
 
-### Install
+### Install <!-- {docsify-ignore} -->
 
 ```bash
 npm install @badcafe/jsonizer
 ```
 
-### Usage
+### Usage <!-- {docsify-ignore} -->
 
 ```typescript
 import { Jsonizer, Reviver, Replacer, Mappers, Namespace } from '@badcafe/jsonizer';
@@ -40,11 +40,11 @@ If you intend to use `@Reviver` as a decorator set the relevant flag in `tsconfi
 
 For other transpilers ([Babel](https://babeljs.io/)), please refer to the relevant documentation for activating decorators.
 
-> Decorators are not mandatory: there is an alternative, see below...
+> Decorators are not mandatory: [there is an alternative, see below...](#no-decorator)
 
 ## Overview
 
-### What are we talking about ?
+### What are we talking about ? <!-- {docsify-ignore} -->
 
 Let's start with a simple data structure :
 
@@ -239,7 +239,7 @@ It is possible to mix the 'any' key `'*'` with numeric keys : in that case, `'*'
 
 Jsonizer supplies the decorator function `@Reviver` that allows to bind easily some mappings to a class.
 
-> You ought decorate your classes with `@Namespace` too if you intend to share your code in a lib (more about that later in this doc).
+> You ought decorate your classes with `@Namespace` too if you intend to share your code in a lib ([more about that later in this doc](#namespaces)).
 
 ### Custom classes
 
@@ -264,7 +264,7 @@ const personReviver = Reviver.get(Person); // 👈  extract the reviver from the
 const personFromJson = JSON.parse(personJson, personReviver);
 ```
 
-The **builder function** can be more complex than the one shown here (see later).
+The **builder function** can be more complex than the one shown here ([see later](#the-3939-self-builder)).
 
 ### Self apply
 
@@ -424,7 +424,7 @@ Jsonizer supplies revivers for few built-in classes :
 * `RegExp`,
 * `Error`
 
-Jsonizer's `Reviver` class has also its reviver, that allow **to revive a reviver** like any other class (see below).
+Jsonizer's `Reviver` class has also its reviver, that allow **to revive a reviver** like any other class ([see below](#replacer)).
 
 > #### Errors
 > By default Javascript doesn't serialize the type and the message of an error :
@@ -438,7 +438,7 @@ Jsonizer's `Reviver` class has also its reviver, that allow **to revive a revive
 > String(new TypeError('Ooops !'));
 > // 'TypeError: Ooops !'
 > ```
-> By default, Asynchronizer will serialize that string representation, and will revive errors even if the error class is unknown. Custom errors can of course be processed like any other classes and will be revived if the error class is known at runtime.
+> By default, Jsonizer will serialize that string representation, and will revive errors even if the error class is unknown. Custom errors can of course be processed like any other classes and will be revived if the error class is known at runtime.
 
 ### The `'.'` (self) builder
 
@@ -703,8 +703,74 @@ Reviver<Buffer, number[]>({
 })(Buffer);
 
 const buf = Buffer.from('ceci est un test');
-const bufJson = JSON.stringify(buf);
+const bufJson = JSON.stringify(buf, Jsonizer.REPLACER); // 👈  pass a Jsonizer's replacer
 // [99,101,99,105,32,101,115,116,32,117,110,32,116,101,115,116]
+```
+
+> You must explicitely opt-in to `[Jsonizer.toJSON]()` by using a
+> Jsonizer's replacer :
+> * `Jsonizer.REPLACER` (in the example above)
+> * or `Jsonizer.replacer()` ([see below](#replacer))
+
+### Fixing a bad structure
+
+Sometimes, you receive external data that are not well designed :
+
+```typescript
+const person = {
+    first_name: 'Bob',       // 👈  inconsistent field name
+    numberOfHobbies: '3',    // 👈  should be a number
+    birthDate: '21/10/1998', // 👈  formatted Date
+}
+```
+
+But you prefer a clean target structure...
+
+```typescript
+export interface Person { // 👈  Target with clean types
+    firstName: string
+    numberOfHobbies: number
+    birthDate: Date
+}
+```
+
+Just use a reviver to fix anything :
+
+```typescript
+// as a bonus, we introduce a namespace (more about that later)
+export namespace Person {
+    export interface DTO { // 👈  Source with bad types
+        first_name?: string
+        numberOfHobbies: string
+        birthDate: string
+    }
+
+    export const reviver = Jsonizer.reviver<Person, Person.DTO & { firstName: string }>({
+        '.': item => {
+            //  👇 rename the field
+            item.firstName = item.first_name!;
+            delete item.first_name;
+            return item; // we don't make a copy, we are just
+                        // returning the updated structure          🖕
+                        // this is why the 'firstName' field is added to the source type
+        },
+        numberOfHobbies: {
+            //  👇 fix the type
+            '.': n => parseInt(n)
+        },
+        birthDate: {
+            //  👇 fix the Date
+            '.': date => {
+                const [day, montIndex, year] = date.split('/') // don't use new Date(year, montIndex - 1, day)
+                    .map(part => parseInt(part));              // because it may shift due to the local time zone
+                const utc = new Date();
+                utc.setUTCHours(0, 0, 0, 0);
+                utc.setUTCFullYear(year, montIndex - 1, day);
+                return utc;            
+            }
+        }
+    })
+}
 ```
 
 ## Ranges and Regexp
@@ -749,7 +815,7 @@ Note that a similar result could be achieved with the following mappings:
 A mapper applies the following priority to a property name or an index:
 
 1. exact name match,
-2. RegExp match or range match (see after),
+2. RegExp match or range match ([see after](#ranges)),
 3. any match (`'*'`) if present
 
 otherwise, there is no mapping : the value is kept as-is.
@@ -801,11 +867,11 @@ A namespace aims to group related items under a universal naming system (for nam
 
 * We suggest to left in the default namespace `''` (no namespace) the built-in classes of the Javascript language. This means that if you want to name a class that already has such name, or if you want to use a class of a third-party library that already has such name, that classes have to be set in a namespace.
 
-* For a library of your own, it is strongly recommended to use a universal naming system. We suggest to use the reverse DNS name of your company / organization as the base name, e.g. `com.example.myLib`, or even the repo where it is published, e.g. `com.github.myLib`, or the name under which you published it in npm, e.g. `@example/myLib`, or `npm:myLib`.
+* For a library of your own, it is strongly recommended to use a universal naming system. We suggest to use the reverse DNS name of your company / organization as the base name, e.g. `com.example.myLib`, or even the repo where it is published, e.g. `com.github.myLib`, or the name under which you published it in npm, e.g. `npm:@example/myLib`, or `npm:myLib`.
 
 * For an app of your own, since nothing is designed to be exposed to others, a relative name such as `myApp` is enough.
 
-* Jsonizer's own namespace is `@badcafe/jsonizer` and **must not** be used for other material than those available in this library.
+* Jsonizer's own namespace is `npm:@badcafe/jsonizer` and **must not** be used for other material than those available in this library.
 
 ### Jsonizer namespaces
 
@@ -866,7 +932,7 @@ Jsonizer use namespaces when revivers are sent aside the data to revive. A strin
 >     category: Category // 👍 referred regardless of its namespace
 > }
 > ```
-> The qualified names will be used by Jsonizer only when serializing revivers at the latest stage.
+> The qualified names will be used by Jsonizer **only** when serializing revivers at the latest stage.
 
 #### Summary
 
@@ -1044,7 +1110,7 @@ const jsonReviver = replacer.toString()
 sendOrStoreOrWhatever(jsonData, jsonReviver);
 ```
 
-To respawn the data, pass the reviver to `JSON.parse()` :
+To respawn the data, parse the JSON reviver then pass the reviver to `JSON.parse()` :
 
 ```typescript
 function parseData(jsonData: string, jsonReviver: string) {
@@ -1181,6 +1247,11 @@ From that bases, it is possible to design a dynamic reviver :
 * where the data must be sequentially after its reviver (because it is required to augment the payload data)
 * where the JSON bundle have to be created artificially (because the reviver is ready after stringify ends)
 
+> Instead of parsing the reviver then parsing the data with the former,
+> a dynamic reviver will parse both at once.
+> In the [previous example](#replacer), the reviver and the data
+> were parsed separately.
+
 For example, if we intend to send the tuple `[jsonReviver, jsonData]` :
 
 ```typescript
@@ -1225,7 +1296,7 @@ Classes are short-circuit, since they are referred with their qualified names an
 
 Jsonizer fits well in [Asynchronizer](https://badcafe.github.io/asynchronizer).
 
-Asynchronizer allows to define consistent [RPC functions](https://en.wikipedia.org/wiki/Remote_procedure_call) to send objects as JSON data through various channels (Web socket, HTTP, node clusters, web workers, etc), manages asynchronous return values or errors, handles broadcasting and multicasting, etc.
+> Asynchronizer allows to define consistent [RPC functions](https://en.wikipedia.org/wiki/Remote_procedure_call) to send objects as JSON data through various channels (Web socket, HTTP, node clusters, web workers, etc), manages asynchronous return values or errors, handles broadcasting and multicasting, etc.
 
 In Asynchronizer, a new component called a data transfer handler (DTH) is used to describe a group of RPC functions (like a service, but a service is strongly related to client-server exchange, whereas a DTH is a more general concept) :
 
@@ -1245,9 +1316,15 @@ export namespace Person {
 
 Applications made with Asynchronizer are usually isomorphic applications with at least 3 parts :
 
-* `myApp-shared` : contains the classes definition with their DTH (the snippet code above)
-* `myApp-client` : is the client app ; it will use `Person.DTH` to ask for the data
-* `myApp-server` : is the server app ; it will implement `Person.DTH` to respond to the client
+```
+[APP_ROOT]
+    ┣━myApp-shared      contains the classes definition with their DTH
+    ┃                                           (the snippet code above)
+    ┣━myApp-client      is the client app ; it will use `Person.DTH`
+    ┃                                               to ask for the data
+    ┗━myApp-server      is the server app ; it will implement `Person.DTH`
+                                                    to respond to the client
+```
 
 Say that we are using a web socket channel between the client and server ; the client may invoke the server like this :
 

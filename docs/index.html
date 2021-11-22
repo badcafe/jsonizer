@@ -20,6 +20,16 @@
 h1, h2, h3, h4, h5, h6 {
     color: #384257 !important;
 }
+/* allow to fold/unfold sub menu */
+.sidebar-nav ul.app-sub-sidebar ul.app-sub-sidebar li {
+    display: none;
+}
+.sidebar-nav ul.app-sub-sidebar ul.app-sub-sidebar.current li {
+    display: block;
+}
+.sidebar-nav ul.app-sub-sidebar li.active + ul.app-sub-sidebar li {
+    display: block;
+}
   </style>
 </head>
 <body>
@@ -31,9 +41,10 @@ h1, h2, h3, h4, h5, h6 {
       name: '@badcafe/jsonizer',
       loadSidebar: 'sidebar.md',
       repo: 'https://github.com/badcafe/jsonizer',
-      subMaxLevel: 2,
+      subMaxLevel: 3,
       auto2top: true,
       executeScript: true,
+      homepage: 'USER_GUIDE.md',
       markdown: {
         renderer: {
           code: function(code, lang) {
@@ -45,7 +56,35 @@ h1, h2, h3, h4, h5, h6 {
             return this.origin.code.apply(this, arguments);
           }
         }
-      }      
+      },
+      plugins: [
+        function(hook, vm) {
+            hook.mounted(function() {
+                // allow to fold/unfold sub menu
+                var current;
+                var callback = function(mutationsList) {
+                    for (var mutation of mutationsList) {
+                        if (mutation.type == 'attributes' && mutation.target.classList.contains('active')) {
+                            if (current) {
+                                current.classList.remove('current');
+                            }
+                            if (mutation.target.parentElement.parentElement.tagName !== 'ul') {
+                                // top menu in the file doesn't have a <ul> parent
+                                current = mutation.target.parentElement;
+                                current.classList.add('current');
+                            }
+                        }
+                    }
+                };
+                var observer = new MutationObserver(callback);
+                observer.observe(document.getElementsByClassName('sidebar-nav')[0], {
+                    attributes: true,
+                    subtree: true,
+                    attributeFilter: ['class']
+                });
+            });
+        }
+      ]
     }
   </script>
   <script src="//unpkg.com/docsify/lib/docsify.min.js"></script>

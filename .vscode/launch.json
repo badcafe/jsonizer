@@ -1,0 +1,47 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Tests Current TS File",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceRoot}/node_modules/.bin/jest",
+            "args": ["${relativeFile}"],
+            "cwd": "${workspaceRoot}",
+            "protocol": "inspector",
+            "runtimeArgs": ["-r", "ts-node/register"],
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "Tests ALL TS File",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceRoot}/node_modules/.bin/jest",
+            "args": ["--runInBand"],
+            "cwd": "${workspaceRoot}",
+            "protocol": "inspector",
+            "runtimeArgs": ["-r", "ts-node/register"],
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "Run Current CJS TS File",
+            "type": "node",
+            "request": "launch",
+            "args": ["${relativeFile}", "--skipLibCheck"],
+            "runtimeArgs": ["-r", "ts-node/register"],
+            "cwd": "${workspaceRoot}",
+            "protocol": "inspector",
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "Run Current ESM TS File",
+            "type": "node",
+            "request": "launch",
+            "args": ["${relativeFile}", "--skipLibCheck"],
+            "runtimeArgs": ["-r", "esm", "-r", "ts-node/register", "--experimental-modules"],
+            "cwd": "${workspaceRoot}",
+            "protocol": "inspector",
+            "internalConsoleOptions": "openOnSessionStart"
+        }
+    ]
+}

@@ -2,6 +2,7 @@ import { Jsonizer, Reviver, Class, Mappers, Namespace } from "../src";
 
 import { Category as MovieCategory } from './readme.namespaces.jsonizer.movie';
 import { Product as Product2 } from './readme.namespaces.jsonizer.product';
+import { Person } from './readme.dto';
 
 // see README.md : all examples are here and tested
 
@@ -686,7 +687,7 @@ describe('README.md examples', () => {
                     '.': values => Buffer.from(values)
                 })(Buffer);
                 const buf = Buffer.from('ceci est un test');
-                const bufJson = JSON.stringify(buf);
+                const bufJson = JSON.stringify(buf, Jsonizer.REPLACER);
                 expect(JSON.parse(bufJson)).toEqual([
                     99,101,99,105,32,101,115,116,32,117,110,32,116,101,115,116
                 ]);
@@ -696,6 +697,21 @@ describe('README.md examples', () => {
             } finally {
                 delete Buffer.prototype[Jsonizer.toJSON];
             }
+        });
+        test('Fixing a bad structure', () => {
+            const person = {
+                first_name: 'Bob',       // 👈  inconsistent field name
+                numberOfHobbies: '3',    // 👈  should be a number
+                birthDate: '21/10/1998', // 👈  formatted Date
+            }
+            const personJSON = JSON.stringify(person);
+            const personFromJson = JSON.parse(personJSON, Person.reviver);
+            expect(personFromJson.firstName).toBe('Bob');
+            expect((personFromJson as any).first_name).toBeUndefined();
+            expect(typeof personFromJson.numberOfHobbies).toBe('number');
+            expect(personFromJson.birthDate.getUTCFullYear()).toBe(1998);
+            expect(personFromJson.birthDate.getUTCDate()).toBe(21);
+            expect(personFromJson.birthDate.getUTCMonth()).toBe(9);
         });
     });
     describe('Ranges and Regexp', () => {
