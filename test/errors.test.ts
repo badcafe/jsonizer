@@ -1,11 +1,13 @@
-import { Reviver } from "../src";
+import { Jsonizer, Reviver } from "../src";
 
 describe('Errors', () => {
     describe('reviving', () => {
         test('Error', async () => {
             const msg = 'Oops !';
             const err = new Error(msg);
-            const jsonErr = JSON.stringify(err);
+            let jsonErr = JSON.stringify(err);
+            expect(jsonErr).toBe(`{}`);
+            jsonErr = JSON.stringify(err, Jsonizer.REPLACER);
             expect(jsonErr).toBe(`"Error: ${msg}"`);
             const jsonReviver = '{".":"Error"}';
             const reviver = JSON.parse(jsonReviver, Reviver.get<Reviver<Error>>());
@@ -17,7 +19,9 @@ describe('Errors', () => {
         test('TypeError', async () => {
             const msg = 'Oops !';
             const err = new TypeError(msg);
-            const jsonErr = JSON.stringify(err);
+            let jsonErr = JSON.stringify(err);
+            expect(jsonErr).toBe(`{}`);
+            jsonErr = JSON.stringify(err, Jsonizer.REPLACER);
             expect(jsonErr).toBe(`"TypeError: ${msg}"`);
             const jsonReviver = '{".":"TypeError"}';
             const reviver = JSON.parse(jsonReviver, Reviver.get<Reviver<TypeError>>());
@@ -36,8 +40,9 @@ describe('Errors', () => {
             }
             const msg = 'Oops !';
             const err = new MyError(msg);
-            const jsonErr = JSON.stringify(err);
-            expect(jsonErr).toBe(`"MyError: ${msg}"`);
+            let jsonErr = JSON.stringify(err);
+            expect(jsonErr).toBe(`{\"name\":\"MyError\"}`);
+            jsonErr = JSON.stringify(err, Jsonizer.REPLACER);
             const jsonReviver = '{".":"MyError"}';
             const reviver = JSON.parse(jsonReviver, Reviver.get<Reviver<MyError>>());
             const errFromJson = JSON.parse(jsonErr, reviver);
