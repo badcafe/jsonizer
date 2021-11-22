@@ -1,3 +1,8 @@
+/**
+ * [User guide](https://badcafe.github.io/jsonizer)
+ * 
+ * @module
+ */
 import 'reflect-metadata';
 
 import { Namespace, Class } from './namespace';
@@ -7,12 +12,14 @@ import { deepEquals, isPrimitive } from './util';
 ///////// public API //////////
 ///////////////////////////////
 
+const namespace = 'npm:@badcafe/jsonizer';
+
 /**
- * An object litteral that describe the mappers of a class, an array,
- * or a data structure.
+ * A plain object that describes the mappers of a class, an array,
+ * a tuple, or a data structure.
  * 
- * The `Mappers` object is the counterpart inert structure of a `Reviver`
- * (which is a function).
+ * The `Mappers` object is the counterpart inert structure of the
+ * [`Reviver` type](#reviver-1) (which is a function).
  * 
  * ## Example
  * 
@@ -20,7 +27,7 @@ import { deepEquals, isPrimitive } from './util';
  * // some class
  * class Thread {
  *      constructor(
- *          public creationDate: Date, // built-in javascript Date
+ *          public date: Date, // built-in javascript Date
  *          public label: string,
  *          public comments: Comment[] // another custom class
  *      )
@@ -30,15 +37,16 @@ import { deepEquals, isPrimitive } from './util';
  * const threadMappers: Mappers<Thread> = {
  *    //👇 the "Self" entry '.' indicates how to create a new instance
  *      '.': ({creationDate, label, comments}) => new Thread(creationDate, label, comments)
- *    //👇 other entries
- *      creationDate: Date // 👈 delegate to the built-in Date mappers
+ *    //👇 field mappers
+ *      date: Date // 👈 delegate to the built-in Date mappers
  *      comments: {
  *        //👇 the "Any" entry '*' matches any indices of the array
  *          '*': Comment // 👈 delegate to the custom Comment mappers
  *      }
  * }
  * ```
- * @see [[Reviver]] To bind the mapper to the class
+ * @see [Reviver()](#reviver-2) To bind the mapper to the class
+ * @see [[Jsonizer.reviver]] To create a reviver from the mapper
  * 
  * ## Description
  * 
@@ -46,9 +54,9 @@ import { deepEquals, isPrimitive } from './util';
  * converted (by default the properties or items are left as-is). An object property or
  * array item can also describe its own mappers and so-on.
  * 
- * The more often the properties of an object mapper are the same of those of the object,
- * or in case of an array mapper the indices in that array (which is helpful for mapping
- * tuples).
+ * The more often (when Source and Target are the same) the properties of an object mapper
+ * are the same of those of the object, or in case of an array mapper the indices in that
+ * array (which is helpful for mapping tuples).
  * 
  * Some additional keys are available in the mapper :
  * 
@@ -62,6 +70,8 @@ import { deepEquals, isPrimitive } from './util';
  * in this example it matches property names that end with 'Date'
  * * `'8-12'` which is a range key that can be set only on mappers for arrays, in this
  * example, it matches indexes from 8 to 12 included.
+ * 
+ * > Unlike all other keys, the `'.'` key is not a field mapper, but a builder function.
  * 
  * ### Built-in mappers
  * 
@@ -87,6 +97,8 @@ import { deepEquals, isPrimitive } from './util';
  * then the mapper must contain an array of that jokers bound to the symbol `[Jokers.Key]`
  * 
  * @see [[Jokers]]
+ * @see [User guide - Revivers mappings](https://badcafe.github.io/jsonizer/#/README?id=revivers-mappings)
+ * @see [User guide - Data Transfer Object](https://badcafe.github.io/jsonizer/#/README?id=dto)
  */
 export type Mappers<
     Target,
@@ -152,7 +164,7 @@ export namespace Mappers {
      * //                           by -say- '**', 'that', and '~' :
      * ClassMapper<Foo, FooSource, ['~\\w+~'], '**', 'that', '~'> = {
      *     // as soon as they are renamed, the next entry is mandatory :
-     *     [Jokers.Key]: ['**', 'that', '~'],
+     *     [Mappers.Jokers.$]: ['**', 'that', '~'],
      *     '**': {
      *          // '**' is the optional mapper for *Any* other fields
      *     }
@@ -174,14 +186,19 @@ export namespace Mappers {
          * * "Self" (`'.'`) denotes the host builder entry
          * * "Delim" (`'/'`) when used as the Regexp delimiter, e.g. `'/\\w+Date/'`
          * * "Delim" (`'-'`) when used as the range delimiter, e.g. `'8-12'`
+         * 
+         * @see [[Jokers]]
          */
-        export const $ = Symbol.for("@badcafe/jsonizer.JokersKey");
+        export const $ = Symbol.for(`${namespace}.JokersKey`);
 
         /**
          * Allow to customize jokers.
          * 
          * When `Any` is not `'*'` or `Self` is not `'.'` or `Delim` is not `'/'` or `'-'`,
          * then this type contains an entry that must contain an array with the new values.
+         * 
+         * 
+         * @see [[Jokers]]
          */
         export type Custom<Any extends string, Self extends string, Delim extends string> =
             Self extends '.'
@@ -204,16 +221,26 @@ export namespace Mappers {
     /**
      * A matcher is either a regular expression for matching properties
      * of an object, or a range for matching indexes of an array.
+     * 
+     * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=ranges-and-regexp)
      */
     export namespace Matcher {
 
         /**
          * A type for Regexp, e.g. `'/\\w+Date/'`
+         * > RegExp keys are represented as strings, which may introduce additional
+         * > escapes, e.g. `/\w+Date/.toString()` gives `'/\\w+Date/'`
+         * 
+         * @see [[Jokers]]
+         * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=regexp)
          */
         export type Regexp<Delim extends string = '/'> = `${Delim}${string}${Delim}`;
 
         /**
-         * A type for arrays range , e.g. `'8-12'`
+         * A type for arrays range , e.g. `'8-12'` (included)
+         * 
+         * @see [[Jokers]]
+         * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=ranges)
          */
         export type Range<Delim extends string='-'> = `${number}${Delim}${number}`;
 
@@ -254,6 +281,8 @@ export namespace Mappers {
 
         /**
          * Indicates whether a key is a Regexp, e.g. `'/\\w+Date/'`
+         * 
+         * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=regexp)
          */
         export function isRegExp(key: string, delim = '/'): boolean {
             return key.length > 1 && key[0] === delim && key[key.length -1] === delim            
@@ -261,6 +290,8 @@ export namespace Mappers {
 
         /**
          * Indicates whether a key is a range, e.g. `'8-12'`
+         * 
+         * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=ranges)
          */
          export function isRange(key: string, delim = '-'): boolean {
             return ! isNaN(key.split(delim) // '8-12' => ['8', '12']
@@ -283,10 +314,14 @@ export namespace Mappers {
  * It can be created :
  * 
  * * with [[Jsonizer.reviver]]()
- * * with [[Reviver]] as a class decorator or a function
+ * * with [Reviver()](#reviver-2) as a class decorator or a function
  * * with a [[Replacer]] created with [[Jsonizer.replacer]]() after `JSON.stringify()`
  * 
  * Can also be invoked directly on a data structure to augment.
+ * 
+ * @see [User guide - `Jsonizer.reviver()`](https://badcafe.github.io/jsonizer/#/README?id=revivers-mappings)
+ * @see [User guide - Classes](https://badcafe.github.io/jsonizer/#/README?id=classes)
+ * @see [User guide - Replacer](https://badcafe.github.io/jsonizer/#/README?id=reviver-generation)
  */
 export type Reviver<Target = any> = {
 
@@ -328,6 +363,7 @@ export type Reviver<Target = any> = {
  * 
  * @see [[Replacer.getReviver]]
  * @see [[Jsonizer.replacer]]
+ * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=reviver-generation)
  */
 export interface Replacer<Type = any> {
 
@@ -362,6 +398,19 @@ export interface Replacer<Type = any> {
  * A class decorator that contains recipes to revive an instance from
  * its JSON representation.
  * 
+ * ```typescript
+ *@Reviver<Person>({ // 👈  bind the reviver to the class
+ *    '.': ({name, birthDate}) => new Person(name, birthDate), // 👈  instance builder
+ *    birthDate: Date // 👈  field mapper
+ *})
+ *class Person {
+ *    constructor( // all fields are passed as arguments to the constructor
+ *        public name: string,
+ *        public birthDate: Date
+ *    ) {}
+ *}
+ * ```
+ * 
  * It contains mappers for reviving individual fields to specific instances and
  * a builder function to construct the final object from revived fields.
  * 
@@ -373,8 +422,13 @@ export interface Replacer<Type = any> {
  * 
  * @paramType Target - The actual class to revive
  * @paramType Source - The JSON representation of `Target` is by default the structural `Target` itself
+ * @paramType Match - An array of Regexp matchers if the Source is an object, e.g. `['/\\w+Date/']`,
+ *          or an array of range matchers if the Source is an array, e.g. `['8-12']`.
  * 
  * @param mappers The mappers of the source fields.
+ * 
+ * @see [[Reviver.get]]
+ * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=classes)
  */
 export function Reviver<
     Target,
@@ -404,9 +458,11 @@ export function Reviver<
 export namespace Reviver {
 
     /**
+     * @ignore
+     * 
      * Metadata key.
      */
-    export const $ = Symbol.for('@badcafe/jsonizer.Reviver');
+    export const $ = Symbol.for(`${namespace}.Reviver`);
 
     /**
      * Get the reviver of a class.
@@ -433,6 +489,8 @@ export namespace Reviver {
     }
 
     /**
+     * @ignore
+     * 
      * Either a class decorated with a reviver, or the qualified name of that class.
      * 
      * @see [[Namespace]]
@@ -442,34 +500,53 @@ export namespace Reviver {
 }
 
 /**
- * Main API.
- * 
- * @see [[Reviver]]
+ * [User guide](https://badcafe.github.io/jsonizer)
  */
 export namespace Jsonizer {
 
     /**
-     * The internal namespace is `'@badcafe/jsonizer'`,
-     * don't use for your own libraries or app.
+     * The internal namespace is `'npm:@badcafe/jsonizer'`,
+     * don't use it for your own libraries or app.
      */
-    export const namespace = '@badcafe/jsonizer';
+    export const NAMESPACE = namespace;
 
     /**
-     * An alternative key for objects ; when serialized with
-     * [[Jsonizer.replacer]], the method bound to this symbol
-     * will be used instead of the standard method.
+     * An alternative key for objects to bind to a custom
+     * `toJSON()` function ; when serialized with
+     * [[Jsonizer.replacer]] or with [[Jsonizer.REPLACER]],
+     * the method bound to this symbol will be used instead
+     * of the standard method.
+     * 
+     * > If you want to left as is the default `toJSON()` function
+     * > of an existing class, you may want instead create
+     * > a custom `[Jsonizer.toJSON]()` function.
+     * 
+     * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=jsonizertojson)
      */
-    export const toJSON: unique symbol = Symbol.for('@badcafe/jsonizer.toJSON');
+    export const toJSON: unique symbol = Symbol.for(`${namespace}.toJSON`);
 
     /**
      * Create a nested reviver that can convert a value and its
      * nested values.
+     * 
+     * ## Usage 
+     * 
+     * ```typescript
+     * const personReviver = Jsonizer.reviver<typeof person>({
+     *     birthDate: Date
+     * });
+     * ```
      * 
      * @param mappers Mapper for the current value and children values
      * @return A reviver that can be passed to `JSON.parse()` or
      *      that can be used as a reviver object on which one can
      *      directly call `.revive()`. That reviver can also be
      *      itself serialized and revived.
+     * 
+     * @see [User guide - Objects](https://badcafe.github.io/jsonizer/#/README?id=objects)
+     * @see [User guide - Arrays](https://badcafe.github.io/jsonizer/#/README?id=arrays)
+     * @see [User guide - Nested mapping](https://badcafe.github.io/jsonizer/#/README?id=nested-mappings)
+     * @see [User guide - Tuples](https://badcafe.github.io/jsonizer/#/README?id=tuples)
      */
     export function reviver<
         Target,
@@ -487,6 +564,9 @@ export namespace Jsonizer {
     /**
      * Create a `replacer` function to use with `JSON.stringify()` ;
      * this replacer can capture the revivers.
+     * 
+     * > During stringification, custom `[Jsonizer.toJSON]()` functions
+     * will be used instead of the standard method.
      * 
      * ## Capture phase
      * 
@@ -525,9 +605,36 @@ export namespace Jsonizer {
      * ```
      * 
      * @paramType Type The type to replace, to have it in the reviver.
+     * 
+     * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=replacer)
      */
     export function replacer<Type = any>(): Replacer<Type> {
         return new internal.Replacer() as any as Replacer<Type>;
+    }
+
+    /**
+     * Just a placeholder `replacer()` that tells to use customs
+     * functions `[Jsonizer.toJSON]()` instead of the standard
+     * method.
+     * 
+     * > `JSON.stringify()` used without `Jsonizer.replacer()`
+     * > or without `Jsonizer.REPLACER` won't use custom
+     * > `[Jsonizer.toJSON]()` functions.
+     * 
+     * ## Usage
+     * 
+     * ```typescript
+     * JSON.stringify(data, Jsonizer.REPLACER);
+     * ```
+     * 
+     * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=jsonizertojson)
+     */
+    export const REPLACER = function getJSON(key: string, value: any): any { // this is not 'toJSON()'
+        // (key, value): any, just to have the signature of a replacer
+        return value?.[Jsonizer.toJSON]
+            ? value[Jsonizer.toJSON]() // may return null or undefined
+            // else normal behaviour, potentially let go on with value.toJSON()
+            : value;
     }
 
     /**
@@ -542,8 +649,23 @@ export namespace Jsonizer {
          * is useful when the `'*'` (Any) key is used to map
          * every value, except some of them that would be mapped
          * to the identity.
+         * 
+         * ```typescript
+         * @Reviver<Hobby>({
+         *     '.': Jsonizer.Self.apply(Hobby),
+         *     '*': Date // 👈 matches any field...
+         *     hobby: Jsonizer.Self.Identity // 👈  ...except 'hobby', kept unchanged
+         * })
+         * ```
+         * 
+         * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=pass-through-identity)
          */
-        export class Identity {}
+        export class Identity {
+            /** @ignore */
+            constructor() {
+                throw new TypeError('Creating an instance of Identity class is non sense')
+            }
+        }
 
         /**
          * A mapping function for the `Self` key `'.'` that
@@ -556,6 +678,8 @@ export namespace Jsonizer {
          * ```
          * { '.': args => new Foo(Object.values(args)) }
          * ```
+         * 
+         * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=self-apply)
          */
         export function apply<T>(clazz: Class<T>): (args: object) => T {
             return (args: object) => new clazz(...Object.values(args));
@@ -576,6 +700,8 @@ export namespace Jsonizer {
          *     return foo;
          * }
          * ```
+         * 
+         * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=self-assign)
          */
         export function assign<T>(clazz: Class<T>): (args: object) => T {
             return (args: object) => {
@@ -594,8 +720,8 @@ export namespace Jsonizer {
 ///////////////////////////////
 
 // Mappers$ because there is a Mapper name that already exist above
-const Mappers$ = Symbol.for('@badcafe/jsonizer.Mappers');
-const Clazz = Symbol.for('@badcafe/jsonizer.Class');
+const Mappers$ = Symbol.for(`${namespace}.Mappers`);
+const Clazz = Symbol.for(`${namespace}.Class`);
 
 /**
  * Jsonizer algorithms
@@ -609,7 +735,7 @@ namespace internal {
      * we are setting this internal class with a qualified name
      * in order to retrieve it easily ; and it can be serialized
      */
-    export class Reviver extends Function { // I do wanted it to be '@badcafe/jsonizer.Reviver'
+    export class Reviver extends Function { // I do wanted it to be 'npm:@badcafe/jsonizer.Reviver'
     // see at the end the decorators
 
         static $ = Mappers$;
@@ -968,7 +1094,7 @@ namespace internal {
         to?: number   //   or range
     }
 
-    const UNMAPPED_KEYS = Symbol.for('@badcafe/jsonizer.UnmappedKeys'); // used to collect keys that are not mapped
+    const UNMAPPED_KEYS = Symbol.for(`${namespace}.UnmappedKeys`); // used to collect keys that are not mapped
 
     /**
      * Replacer implementation
@@ -1024,14 +1150,6 @@ namespace internal {
                 || Object.keys(this.mapper).length === 0;
         }
 
-        // this is not 'toJSON()'
-        static getJSON(key: string, value: any): any {
-            // (key, value): any, just to have the signature of a replacer
-            return value?.[Jsonizer.toJSON]?.()
-                // else normal behaviour, potentially let go on with value.toJSON()
-                ?? value;
-        }
-
         /**
          * Initialize our Replacer with the root value to stringify.
          * 
@@ -1040,11 +1158,7 @@ namespace internal {
          *      value class has a Reviver and set it as the 'Self' mapper.
          */
         static init(root: any, replacer?: Partial<Replacer>): (key: string, value: any) => any {
-            if (! replacer) {
-                // if no replacer was supplied,
-                // just let give it a chance to handle value[Jsonizer.toJSON]?.()
-                return internal.Replacer.getJSON;
-            } else if (replacer?.getReviver && root && ! isPrimitive(root)) {
+            if (replacer !== Jsonizer.REPLACER && replacer?.getReviver && root && ! isPrimitive(root)) {
                 // lookup for the reviver here because it can't be captured later
                 const qname = Replacer.getMapperQName(root);
                 if (qname) {
@@ -1054,7 +1168,7 @@ namespace internal {
                     // nothing more is expected because {'.': 'Foo'} is enough
                     replacer.end = true;
                     // downgrade to something more simple
-                    return internal.Replacer.getJSON; // won't track anything more
+                    return Jsonizer.REPLACER; // won't track anything more
                 } else {
                     // objects, arrays
                     replacer.mapper = {};
@@ -1194,7 +1308,7 @@ namespace internal {
                             this.setMapper(i, value[i]);
                         }
                     }
-                    return Replacer.getJSON(key, value); // array can be subcast
+                    return Jsonizer.REPLACER(key, value); // array can be subcast
                 } else if (typeof value === 'object') {
                     const keys = new Set<string>();
                     for (const prop in value) {
@@ -1219,7 +1333,7 @@ namespace internal {
                             this.setMapper(prop, value[prop]);
                         }
                     }
-                    return Replacer.getJSON(key, value);
+                    return Jsonizer.REPLACER(key, value);
                 } else {
                     return value; // function: left as-is
                     // will be set to null in [] or undefined and discarded in {}
@@ -1351,11 +1465,16 @@ type ReviverAPI<Target> = Reviver<Target>;
 /**
  * A replacement function of `JSON.stringify()`.
  * 
- * If you see such a warning in the console :
- * ```
- * "Unable to patch JSON.stringify(), use stringify() instead"
- * ```
- * then use this function instead of `JSON.stringify()`.
+ * > For internal use only, except if you see such a warning in the console :
+ * > ```
+ * > "Unable to patch JSON.stringify(), use stringify() instead"
+ * > ```
+ * > then use this function instead of `JSON.stringify()`.
+ * 
+ * ## Note
+ * 
+ * This function is just a wrapper around `JSON.stringify()`
+ * used to handle properly the root element.
  */
  export function stringify(
     // stringify(value: any, replacer?: (this: any, key: string, value: any) => any, space?: string | number): string;
@@ -1371,10 +1490,9 @@ type ReviverAPI<Target> = Reviver<Target>;
     //    - if our Replacer is supplied, handle properly the root value
     //              (because the original data can't be handled elsewhere:
     //                  its toJSON() will be already call)
-    //    - if no replacer was supplied, just let handle value[Jsonizer.toJSON]?.()
     //    - else not our concern
     replacer = internal.Replacer.init(value, replacer as Replacer);
-    if (replacer === internal.Replacer.getJSON) {
+    if (replacer === Jsonizer.REPLACER) {
         value = replacer('', value);
     }
     // go !
@@ -1391,14 +1509,14 @@ try {
 
 // final wiring, can't be used as class decorators on themselves
 
-Namespace(Jsonizer.namespace)(internal.Reviver);
+Namespace(Jsonizer.NAMESPACE)(internal.Reviver);
 Reviver<internal.Reviver, Mappers<internal.Reviver, any>>({
     '.': mappers => new internal.Reviver(mappers) // Jsonizer.reviver(mappers)
 })(internal.Reviver);
 
-Namespace(Jsonizer.namespace)(internal.Replacer); // useless, but aligned
+Namespace(Jsonizer.NAMESPACE)(internal.Replacer); // useless, but aligned
 
-Namespace(Jsonizer.namespace)(Jsonizer.Self.Identity);
+Namespace(Jsonizer.NAMESPACE)(Jsonizer.Self.Identity);
 Reviver<any>({
     '.': any => any
 })(Jsonizer.Self.Identity);
