@@ -755,7 +755,8 @@ namespace internal {
             // and also because we can extract subrevivers from it
             return new Proxy(this, {
                 // the reviver function is
-                //      fun(key, value): any
+                //      fun(key, value): any, when passed as 2nd argument to JSON.parse()
+                // or   fun(json)             when used on already parsed data
                 apply(target, thisArg, argArray) {
                     if (argArray.length === 1) {
                         const [json] = argArray;
@@ -1262,11 +1263,11 @@ namespace internal {
                         ? this.stack[this.stack.length -1].mapper
                         : this.mapper
                     const mapper = typeof parent !== 'string'
-                        && key === ''
+                        && this.stack.length === 0
                             ? this.mapper
                             : {}
                         // else no further nested mapping needed : a qname ('string') is already set
-                    const matchKey = key === '' || ! this.stack[this.stack.length -1].isArray
+                    const matchKey = this.stack.length === 0 || ! this.stack[this.stack.length -1].isArray
                         ? key
                         : Number(key);
                     const current = parent[key] // exact match
@@ -1285,7 +1286,7 @@ namespace internal {
                     return mapper;
                 }
                 if (isPrimitive(value)) {
-                    if (key === '') { // root
+                    if (this.stack.length === 0) { // root
                         this.end = true;
                     }
                     return value;
@@ -1339,8 +1340,8 @@ namespace internal {
                     // will be set to null in [] or undefined and discarded in {}
                 }
             } finally {
-                const unStack = (key: string | number)=> {
-                    if (key === '') {
+                const unStack = () => {
+                    if (this.stack.length === 0) {
                         this.end = true;
                     } else {
                         const current = this.stack[this.stack.length -1];
@@ -1433,15 +1434,15 @@ namespace internal {
                                     delete current.mapper[key];
                                 }
                             }
-                            unStack(current.key);
-                            if (current.key === '') {
+                            unStack();
+                            if (this.stack.length === 0) {
                                 this.end = true;
                             }
                         } // else level not yet finished, let it in the stack
                     }
                 }
                 if (check) {
-                    unStack(key);
+                    unStack();
                 }
             }
         }
