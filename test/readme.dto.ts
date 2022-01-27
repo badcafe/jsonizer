@@ -4,6 +4,7 @@ export interface Person { // 👈  Target with clean types
     firstName: string
     birthDate: Date
     numberOfHobbies: number
+    hobbies: string[]
 }
 
 // as a bonus, we introduce a namespace (more about that later)
@@ -12,6 +13,7 @@ export namespace Person {
         first_name?: string
         birthDate: string
         numberOfHobbies: string
+        hobbies: string
     }
 
     export const reviver = Jsonizer.reviver<Person, Person.DTO & { firstName: string }>({
@@ -19,7 +21,8 @@ export namespace Person {
             //  👇 rename the field
             item.firstName = item.first_name!;
             delete item.first_name;
-            return item; // we don't made a copy, we just return the updated structure
+            return item; // we choose to not make a copy, we are
+                        // just returning the updated structure          🖕
                         // this is why the 'firstName' field is added to the source type
         },
         numberOfHobbies: {
@@ -36,6 +39,10 @@ export namespace Person {
                 utc.setUTCFullYear(year, montIndex - 1, day);
                 return utc;            
             }
+        },
+        hobbies: {
+            //  👇 split CSV to array
+            '.': csv => csv.split(',')
         }
     })
 }

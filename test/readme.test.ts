@@ -1,4 +1,4 @@
-import { Jsonizer, Reviver, Class, Mappers, Namespace } from "../src";
+import { Jsonizer, Reviver, Class, Mappers, Namespace, Errors } from "../src";
 
 import { Category as MovieCategory } from './readme.namespaces.jsonizer.movie';
 import { Product as Product2 } from './readme.namespaces.jsonizer.product';
@@ -181,7 +181,24 @@ describe('README.md examples', () => {
             const personJson = JSON.stringify(person);
             const personReviver = Reviver.get(Person); // 👈  extract the reviver from the class
             const personFromJson = JSON.parse(personJson, personReviver);
+            // this is 👆 an instance of Person
             verifyPerson(Person, personFromJson);
+
+            type Employee = [Person, Date]; // 👈  our tuple type
+            const employeesReviver = Jsonizer.reviver<Employee[]>({ // 👈  Employee[] here
+                '*': {
+                    0: Person, // 👈  we can refer a class decorated with @Reviver
+                    1: Date
+                }
+            });
+            const employees = [
+                [person, new Date('2010-06-01')]
+            ];
+            const employeesJson = JSON.stringify(employees);
+            const employeesFromJson = JSON.parse(employeesJson, employeesReviver);
+            expect(employeesFromJson).toHaveLength(1);
+            expect(employeesFromJson[0][0].birthDate).toBeInstanceOf(Date);
+            expect(employeesFromJson[0][1]).toBeInstanceOf(Date);
         });
         test('Self apply', () => {
             @Reviver<Person>({
@@ -369,6 +386,28 @@ describe('README.md examples', () => {
                 expect(personFromJson.hobbies![i]).not.toBeInstanceOf(HobbyReviver);
                 expect(personFromJson.hobbies![i].startDate).toBeInstanceOf(Date);
             }
+        });
+        test('Errors', () => {
+            expect(JSON.stringify(new TypeError('Ooops !'))).toBe('{}');
+            expect(String(new TypeError('Ooops !'))).toBe('TypeError: Ooops !');
+            // opt-in to Jsonizer's serialization :
+            expect(JSON.stringify(new TypeError('Ooops !'), Jsonizer.REPLACER)).toBe('"TypeError: Ooops !"');
+
+            // built-in errors:
+            const typeError = JSON.parse('"TypeError: Ooops !"', Reviver.get(Error))
+            expect(typeError).toBeInstanceOf(Error);
+            expect(typeError.constructor.name).toBe('TypeError');
+
+            // custom errors:
+            const notFoundError = JSON.parse('"Not Found: Ooops !"', Reviver.get(Error))
+            expect(notFoundError).toBeInstanceOf(Error);
+            expect(notFoundError.constructor.name).toBe('Not Found');
+
+            const Err = Errors.getClass('Not Found', true, 404); // true to supply the same instance on every call
+            expect(Errors.isError(Err)).toBeTruthy();
+            // a common practice is to have an error code :
+            expect(Errors.getCode(notFoundError)).toBe(404);
+            // 404
         });
         test('The `.` (self) builder', () => {
             // 💡 you should first examine the data just after
@@ -700,9 +739,10 @@ describe('README.md examples', () => {
         });
         test('Fixing a bad structure', () => {
             const person = {
-                first_name: 'Bob',       // 👈  inconsistent field name
-                numberOfHobbies: '3',    // 👈  should be a number
-                birthDate: '21/10/1998', // 👈  formatted Date
+                first_name: 'Bob',                    // 👈  inconsistent field name
+                numberOfHobbies: '3',                 // 👈  should be a number
+                birthDate: '21/10/1998',              // 👈  formatted Date
+                hobbies: 'cooking,skiing,programming' // 👈  not JSON-friendly
             }
             const personJSON = JSON.stringify(person);
             const personFromJson = JSON.parse(personJSON, Person.reviver);
@@ -712,6 +752,9 @@ describe('README.md examples', () => {
             expect(personFromJson.birthDate.getUTCFullYear()).toBe(1998);
             expect(personFromJson.birthDate.getUTCDate()).toBe(21);
             expect(personFromJson.birthDate.getUTCMonth()).toBe(9);
+            expect(personFromJson.hobbies).toBeInstanceOf(Array);
+            expect(personFromJson.hobbies.length).toBe(3);
+            expect(personFromJson.hobbies).toEqual(['cooking', 'skiing', 'programming']);
         });
     });
     describe('Ranges and Regexp', () => {

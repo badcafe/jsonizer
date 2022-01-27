@@ -105,6 +105,7 @@ Only the fields that are not basic javascript types (array, object, number, stri
 * Jsonizer **reifies the hierachy missing** when using the `reviver` or `replacer` functions.
 * Jsonizer's revivers can **augment the data** by performing the reverse operation of objects stringification with enough flexibility, so that classes are allowed to define their own `toJSON()` functions.
 * Jsonizer field mapping facilities include the joker `'*'` to match any field, as well as Regexp for objects keys and ranges for arrays items.
+* Jsonizer is **not intrusive** : you can define mappers for your own classes as well as for third-party classes.
 * Jsonizer is for JSON, and doesn't handle `undefined`, functions, or symbols. It doesn't either handle circular references (because `JSON.stringify()` doesn't handle them), except if `toJSON()` get rid of them and that the builder function of Jsonizer's revivers recreate them.
 * Jsonizer can spawn itself the revivers for general purpose stringification and parsing, that can be stored or sent with the data payload.
 * Jsonizer takes care of class name conflicts by introducing a simple yet powerful namespace feature.
@@ -262,9 +263,21 @@ const personJson = JSON.stringify(person);
 
 const personReviver = Reviver.get(Person); // 👈  extract the reviver from the class
 const personFromJson = JSON.parse(personJson, personReviver);
+// this is 👆 an instance of Person
 ```
 
-The **builder function** can be more complex than the one shown here ([see later](#the-3939-self-builder)).
+> The **builder function** can be more complex than the one shown here ([see later](#the-3939-self-builder)).
+
+We can also refer it for example in the list of employees of the previous example :
+
+```typescript
+const employeesReviver = Jsonizer.reviver<Employee[]>({ // 👈  Employee[] here
+    '*': {
+        0: Person, // 👈  we can refer a class decorated with @Reviver
+        1: Date
+    }
+});
+```
 
 ### Self apply
 
@@ -426,19 +439,62 @@ Jsonizer supplies revivers for few built-in classes :
 
 Jsonizer's `Reviver` class has also its reviver, that allow **to revive a reviver** like any other class ([see below](#replacer)).
 
-> #### Errors
-> By default Javascript doesn't serialize the type and the message of an error :
-> ```javascript
-> JSON.stringify(new TypeError('Ooops !'));
-> // '{}'
-> // for a custom error, only its own fields will be serialized
-> ```
-> However Javascript can display a string representation :
-> ```javascript
-> String(new TypeError('Ooops !'));
-> // 'TypeError: Ooops !'
-> ```
-> By default, Jsonizer will serialize that string representation, and will revive errors even if the error class is unknown. Custom errors can of course be processed like any other classes and will be revived if the error class is known at runtime.
+### Errors
+
+Javascript doesn't serialize the type and the message of an error :
+
+```javascript
+JSON.stringify(new TypeError('Ooops !'));
+// '{}'
+// for a custom error, only its own fields will be serialized
+```
+
+However Javascript can display a string representation :
+
+```javascript
+String(new TypeError('Ooops !'));
+// 'TypeError: Ooops !'
+```
+
+By default, Jsonizer will serialize that string representation (the class name followed by a colon followed by the message),
+and will revive errors even if the error class is unknown. This is safe for exchanging errors between a server and a client for example,
+since the custom fields may contain sensible data.
+This allows to serialize and recreate errors that are neither controlled by Jsonizer or your app. For example when you fetch data from a database, your code is not necessarily aware of all the kind or errors supposed to be thrown (network error, DNS error, DB error, etc) : the more often you want the data, and catch any error.
+
+```javascript
+// opt-in to Jsonizer's serialization :
+JSON.stringify(new TypeError('Ooops !'), Jsonizer.REPLACER);
+// '"TypeError: Ooops !"'
+```
+
+`Error`'s reviver can be used to revive any error, and will create dynamically missing custom error classes if needed :
+
+```typescript
+// built-in errors:
+const typeError = JSON.parse('"TypeError: Ooops !"', Reviver.get(Error))
+typeError instanceof Error
+// true
+typeError.constructor
+// [Function: TypeError]
+
+// unknown errors:
+const notFoundError = JSON.parse('"Not Found: Ooops !"', Reviver.get(Error))
+notFoundError instanceof Error
+// true
+notFoundError.constructor
+// [Function: Not Found]
+```
+
+Custom errors can of course be processed like any other classes and will be revived if the error class is known at runtime.
+
+The following helper may be used to register a singleton class without defining it strictly and bind a reviver to it :
+
+```typescript
+const Err = Errors.getClass('Not Found', true, 404); // true to supply the same instance on every request
+// a common practice is to have an error code :
+Errors.getCode(notFoundError);
+// 404
+```
 
 ### The `'.'` (self) builder
 
@@ -718,9 +774,10 @@ Sometimes, you receive external data that are not well designed :
 
 ```typescript
 const person = {
-    first_name: 'Bob',       // 👈  inconsistent field name
-    numberOfHobbies: '3',    // 👈  should be a number
-    birthDate: '21/10/1998', // 👈  formatted Date
+    first_name: 'Bob',                    // 👈  inconsistent field name
+    numberOfHobbies: '3',                 // 👈  should be a number
+    birthDate: '21/10/1998',              // 👈  formatted Date
+    hobbies: 'cooking,skiing,programming' // 👈  not JSON-friendly
 }
 ```
 
@@ -731,6 +788,7 @@ export interface Person { // 👈  Target with clean types
     firstName: string
     numberOfHobbies: number
     birthDate: Date
+    hobbies: string[]
 }
 ```
 
@@ -743,6 +801,7 @@ export namespace Person {
         first_name?: string
         numberOfHobbies: string
         birthDate: string
+        hobbies: string
     }
 
     export const reviver = Jsonizer.reviver<Person, Person.DTO & { firstName: string }>({
@@ -750,8 +809,8 @@ export namespace Person {
             //  👇 rename the field
             item.firstName = item.first_name!;
             delete item.first_name;
-            return item; // we don't make a copy, we are just
-                        // returning the updated structure          🖕
+            return item; // we choose to not make a copy, we are
+                        // just returning the updated structure          🖕
                         // this is why the 'firstName' field is added to the source type
         },
         numberOfHobbies: {
@@ -768,6 +827,10 @@ export namespace Person {
                 utc.setUTCFullYear(year, montIndex - 1, day);
                 return utc;            
             }
+        },
+        hobbies: {
+            //  👇 split CSV to array
+            '.': csv => csv.split(',')
         }
     })
 }
