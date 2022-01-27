@@ -120,6 +120,10 @@ describe('Errors', () => {
             expect(Errors.getCode(errFromJson)).toBe(503);
         });
 
+        test('null', () => {
+            const errFromJson = JSON.parse('null', Reviver.get(Error));
+            expect(errFromJson).toBeNull();
+        });
     });
 
 });

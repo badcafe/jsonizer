@@ -34,7 +34,9 @@ import { Namespace } from './namespace';
 // register revivers for built-in classes
 
 Reviver<Date | null, string>({
-    '.': date => date ? new Date(date) : null
+    '.': date => date
+        ? new Date(date)
+        : null
 })(Date);
 
 function getErrConstructor(name: string): ErrorConstructor {
@@ -53,8 +55,11 @@ function getErrConstructor(name: string): ErrorConstructor {
     }
 }
 
-Reviver<Error, string>({
+Reviver<Error | null, string>({
     '.': message => {
+        if (message === null) {
+            return null;
+        }
         //         <--name-->  <--      message      -->
         // e.g. : 'RangeError: precision is out of range'
         let name: RegExpExecArray | string | null = /(\w(?:\s|\w)*):\s*(.*)/.exec(message);
@@ -91,8 +96,10 @@ Error.prototype[Jsonizer.toJSON] = function() {
 } // => 'RangeError: precision is out of range'
 // almost like Error.prototype.toString
 
-Reviver<RegExp, string>({
-    '.': re => new RegExp(re.slice(1,-1)) // '/the regexp/' => 'the regexp'
+Reviver<RegExp | null, string>({
+    '.': re => re
+        ? new RegExp(re.slice(1,-1)) // '/the regexp/' => 'the regexp'
+        : null
 })(RegExp)
 // NOTE: to avoid breaking standard behaviour
 //               we don't set RegExp.prototype.toJSON  = RegExp.toString
