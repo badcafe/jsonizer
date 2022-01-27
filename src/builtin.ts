@@ -2,8 +2,9 @@
 ////// built-in revivers //////
 ///////////////////////////////
 
-import { Namespace } from './namespace';
+import { Errors } from './errors';
 import { Reviver, Jsonizer } from './jsonizer';
+import { Namespace } from './namespace';
 
 // things to put at the end AFTER everything is defined
 
@@ -36,59 +37,59 @@ Reviver<Date | null, string>({
     '.': date => date ? new Date(date) : null
 })(Date);
 
-const Errors = {
-    EvalError: EvalError,
-    RangeError: RangeError,
-    ReferenceError: ReferenceError,
-    SyntaxError: SyntaxError,
-    TypeError: TypeError,
-    URIError: URIError
-};
-
-for (const err in Errors) {
-    Namespace.registerClassByQualifiedName(err, Errors[err as keyof typeof Errors]);
-}
-
 function getErrConstructor(name: string): ErrorConstructor {
-    const ctor = Errors[name as keyof typeof Errors];
-    if (ctor) {
-        return ctor;
+    const Err = Errors.errors[name as Errors.errors];
+    if (Err) {
+        return Err;
     } 
     try {
-        return Namespace.getClass(name) as ErrorConstructor // custom errors
-    } catch (e) { // not found in registry
-        return Error;
+        const cl = Namespace.getClass(name) as ErrorConstructor // custom errors
+        // MyError not found gives Error
+        return cl === Error
+            ? Errors.getClass(name)
+            : cl;
+    } catch (e) { // not found in registry ???
+        return Errors.getClass(name);
     }
 }
+
 Reviver<Error, string>({
     '.': message => {
         //         <--name-->  <--      message      -->
         // e.g. : 'RangeError: precision is out of range'
-        let name: RegExpExecArray | string | null = /(\w+):\s*(.*)/.exec(message);
+        let name: RegExpExecArray | string | null = /(\w(?:\s|\w)*):\s*(.*)/.exec(message);
         if (name?.[1]) {
             [, name, message] = name;
         }
-        const ErrorCtor = typeof name === 'string'
-            ? getErrConstructor(name)
+        const Err = typeof name === 'string'
+            ? getErrConstructor(name.trim())
             : Error;
         let err: Error;
         try {
-            err = new ErrorCtor(message);
+            err = new Err(message);
         } catch (e) { // downgrade
-            err = new Error(message);
-        }
-        if (typeof name === 'string' && err.name !== name) {
-            err.name = name;
+            err = new (typeof name === 'string'
+                ? Errors.getClass(name.trim())
+                : Error
+            )(message);
         }
         return err;
     }
 })(Error);
+
 declare global {
     interface Error {
         [Jsonizer.toJSON](): string
     }
 }
-Error.prototype[Jsonizer.toJSON] = Error.prototype.toString // => 'RangeError: precision is out of range'
+Error.prototype[Jsonizer.toJSON] = function() {
+    return 'constructor' in (this as any)
+        ? this.message === ''
+            ? Errors.getName((this as any).constructor)
+            : `${Errors.getName((this as any).constructor)}: ${this.message}`
+        : this.toString()
+} // => 'RangeError: precision is out of range'
+// almost like Error.prototype.toString
 
 Reviver<RegExp, string>({
     '.': re => new RegExp(re.slice(1,-1)) // '/the regexp/' => 'the regexp'

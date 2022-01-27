@@ -80,14 +80,7 @@
  * @module
  */
 import 'reflect-metadata';
-
-/**
- * Any class
- * 
- * @paramType Type - The class type
- * @paramType Args - The arguments of the constructor
- */
- export type Class<Type = any, Args extends any[] = any[]> = { new(...args: Args): Type }
+import { namespace, Errors, Class } from './base'; // 'npm:@badcafe/jsonizer'
 
 /**
  * Decorator that defines the namespace of a class, and
@@ -187,8 +180,7 @@ export namespace Namespace {
     /**
      * Metadata key.
      */
-    export const $ = Symbol.for('npm:@badcafe/jsonizer.Namespace');
-    // Same as `${Jsonizer.NAMESPACE}.Namespace` but DO NOT import it
+    export const $ = Symbol.for(`${namespace}.Namespace`);
 
     /**
      * Indicates whether a class has a namespace or not.
@@ -212,7 +204,10 @@ export namespace Namespace {
         } else if (ns) {
             return `${getQualifiedName(ns)}.${target.name}`;
         } else {
-            return target.name;
+            const qname = target.name;
+            return (Errors.isError(target) && ! qname.endsWith('Error'))
+                ? 'Error' // fallback
+                : qname;
         }
     }
 
@@ -221,9 +216,9 @@ export namespace Namespace {
      * 
      * @param qname The qualified name of the class.
      * @returns The class bound to that name.
-     * @throws `Name conflict` error when several classes are found :
+     * @throws `Name Conflict` error when several classes are found :
      *      can be fix by setting 2 different namespaces to the classes.
-     * @throws `Missing name` error when the class is not found in the registry.
+     * @throws `Missing Name` error when the class is not found in the registry.
      */
     export function getClass<T>(qname: string): Class<T> {
         const cl = registry.get(qname);
@@ -231,19 +226,17 @@ export namespace Namespace {
         // because one must let the user rearrange its namespaces as wanted
         if (cl) {
             if (cl.length > 1) {
-                const err = new Error(`"${qname}" was registered ${cl.length === 2 ? 'twice' : `${cl.length} times`
-                    }. Consider declaring "Namespace()" on the classes. (409)`);
-                err.name = 'Name conflict';
-                throw err;
+                const Err = Errors.getClass('Name Conflict', true, 409);
+                throw new Err(`"${qname}" was registered ${cl.length === 2 ? 'twice' : `${cl.length} times`
+                    }. Consider declaring "Namespace()" on the classes.`);
             }
             return cl[0];
         } else if (qname.endsWith('Error')) {
             // custom errors might not be registered, go with it
             return Error as any;
         } else {
-            const err = new Error(`"${qname}" not found in registry (404)`);
-            err.name = 'Missing name';
-            throw err;
+            const Err = Errors.getClass('Missing Name', true, 404);
+            throw new Err(`"${qname}" not found in registry`);
         }
     }
 

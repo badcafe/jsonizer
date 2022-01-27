@@ -1,10 +1,11 @@
-import { Jsonizer, Reviver } from "../src";
+import { Errors, Jsonizer, Reviver } from "../src";
 
 describe('Errors', () => {
     describe('reviving', () => {
         test('Error', async () => {
             const msg = 'Oops !';
             const err = new Error(msg);
+            expect(String(err)).toBe(`Error: ${msg}`);
             let jsonErr = JSON.stringify(err);
             expect(jsonErr).toBe(`{}`);
             jsonErr = JSON.stringify(err, Jsonizer.REPLACER);
@@ -19,6 +20,7 @@ describe('Errors', () => {
         test('TypeError', async () => {
             const msg = 'Oops !';
             const err = new TypeError(msg);
+            expect(String(err)).toBe(`TypeError: ${msg}`); // built-in errors are not rendered the same way as custom errors
             let jsonErr = JSON.stringify(err);
             expect(jsonErr).toBe(`{}`);
             jsonErr = JSON.stringify(err, Jsonizer.REPLACER);
@@ -32,24 +34,92 @@ describe('Errors', () => {
         });
         test('MyError', async () => {
             // it is an unregistered error !
-            class MyError extends Error {
+            type Desc = { description: string };
+            const MyError = Errors.getClass<Desc>('MyError');
+            const msg = 'Oops !';
+            const err = new MyError(msg);
+            expect(String(err)).toBe(`Error: ${msg}`);
+            err.description = 'This is my error';
+            let jsonErr = JSON.stringify(err);
+            expect(jsonErr).toBe(`{\"description\":\"This is my error\"}`);
+            let strErr = String(err);
+            expect(strErr).toBe(`Error: ${msg}`);
+
+            const replacer = Jsonizer.replacer();
+            jsonErr = JSON.stringify(err, replacer);
+            expect(jsonErr).toBe(`"MyError: ${msg}"`);
+            expect(replacer.toString()).toBe('{".":"MyError"}');
+
+            const jsonReviver = '{".":"MyError"}'; // falls back to Error
+            const reviver = JSON.parse(jsonReviver, Reviver.get<Reviver<Desc & Error>>());
+            const errFromJson = JSON.parse(jsonErr, reviver);
+            expect(errFromJson).toBeInstanceOf(Error);
+            expect(errFromJson.name).toBe('Error'); // curiously, this is the instance name of custom errors
+            expect(errFromJson.constructor.name).toBe('MyError');
+            expect(errFromJson.message).toBe(msg);
+        });
+        test('MyWarning', async () => {
+            // it is an unregistered error !
+            // the class doesn't end with 'Error'
+            type Desc = { description: string };
+            class MyWarning extends Error implements Desc {
+                description = 'This is my warning';
                 constructor(msg: string) {
                     super(msg);
-                    this.name = 'MyError';
                 }
             }
             const msg = 'Oops !';
-            const err = new MyError(msg);
+            const err = new MyWarning(msg);
+            expect(String(err)).toBe(`Error: ${msg}`);
             let jsonErr = JSON.stringify(err);
-            expect(jsonErr).toBe(`{\"name\":\"MyError\"}`);
-            jsonErr = JSON.stringify(err, Jsonizer.REPLACER);
-            const jsonReviver = '{".":"MyError"}';
-            const reviver = JSON.parse(jsonReviver, Reviver.get<Reviver<MyError>>());
+            expect(jsonErr).toBe(`{\"description\":\"This is my warning\"}`);
+
+            const replacer = Jsonizer.replacer();
+            jsonErr = JSON.stringify(err, replacer);
+            expect(jsonErr).toBe(`"MyWarning: ${msg}"`);
+            expect(replacer.toString()).toBe('{".":"Error"}');
+
+            const jsonReviver = '{".":"Error"}'; // falls back to Error
+            const reviver = JSON.parse(jsonReviver, Reviver.get<Reviver<MyWarning>>());
             const errFromJson = JSON.parse(jsonErr, reviver);
             expect(errFromJson).toBeInstanceOf(Error);
-            expect(errFromJson.name).toBe('MyError');
+            expect(errFromJson.name).toBe('Error'); // curiously, this is the instance name of custom errors
+            expect(errFromJson.constructor.name).toBe('MyWarning');
             expect(errFromJson.message).toBe(msg);
         });
 
+        test('503 Service Unavailable', async () => {
+            type Desc = { description: string };
+            const HttpErr = Errors.getClass<Desc>('Service Unavailable', true, 503);
+            const msg = 'Oops !';
+            const err = new HttpErr(msg);
+            err.description = 'The 503 (Service Unavailable) status code indicates that the server '
+                + 'is currently unable to handle the request due to a temporary overload '
+                + 'or scheduled maintenance, which will likely be alleviated after some delay.';
+            expect(String(err)).toBe(`Error: ${msg}`);
+            expect(err.name).toBe('Error');
+            expect(err.constructor.name).toBe('Service Unavailable');
+            expect(Errors.getName(err)).toBe('Service Unavailable');
+            expect(Errors.getCode(err)).toBe(503);
+            let jsonErr = JSON.stringify(err);
+            expect(jsonErr).toBe(`{\"description\":\"${err.description}\"}`);
+
+            const replacer = Jsonizer.replacer();
+            jsonErr = JSON.stringify(err, replacer);
+            expect(jsonErr).toBe(`"Service Unavailable: ${msg}"`);
+            expect(replacer.toString()).toBe('{".":"Error"}');
+
+            const jsonReviver = '{".":"Error"}'; // falls back to Error
+            const reviver = JSON.parse(jsonReviver, Reviver.get<Reviver<Desc & Error>>());
+            const errFromJson = JSON.parse(jsonErr, reviver);
+            expect(errFromJson).toBeInstanceOf(Error);
+            expect(errFromJson.name).toBe('Error'); // curiously, this is the instance name of custom errors
+            expect(errFromJson.constructor.name).toBe('Service Unavailable');
+            expect(Errors.getName(errFromJson)).toBe('Service Unavailable');
+            expect(errFromJson.message).toBe(msg);
+            expect(Errors.getCode(errFromJson)).toBe(503);
+        });
+
     });
+
 });
