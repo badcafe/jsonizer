@@ -5,14 +5,15 @@
  */
 import 'reflect-metadata';
 
-import { Namespace, Class } from './namespace';
+import { namespace, Class } from './base'; // 'npm:@badcafe/jsonizer'
+
+import { Namespace } from './namespace';
 import { deepEquals, isPrimitive } from './util';
+import { Errors } from './errors';
 
 ///////////////////////////////
 ///////// public API //////////
 ///////////////////////////////
-
-const namespace = 'npm:@badcafe/jsonizer';
 
 /**
  * A plain object that describes the mappers of a class, an array,
@@ -36,7 +37,7 @@ const namespace = 'npm:@badcafe/jsonizer';
  * // our custom mapper
  * const threadMappers: Mappers<Thread> = {
  *    //👇 the "Self" entry '.' indicates how to create a new instance
- *      '.': ({creationDate, label, comments}) => new Thread(creationDate, label, comments)
+ *      '.': ({date, label, comments}) => new Thread(date, label, comments)
  *    //👇 field mappers
  *      date: Date // 👈 delegate to the built-in Date mappers
  *      comments: {
@@ -681,7 +682,7 @@ export namespace Jsonizer {
          * 
          * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=self-apply)
          */
-        export function apply<T>(clazz: Class<T>): (args: object) => T {
+        export function apply<T>(clazz: Class.Concrete<T>): (args: object) => T {
             return (args: object) => new clazz(...Object.values(args));
         }
 
@@ -703,7 +704,7 @@ export namespace Jsonizer {
          * 
          * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=self-assign)
          */
-        export function assign<T>(clazz: Class<T>): (args: object) => T {
+        export function assign<T>(clazz: Class.Concrete<T>): (args: object) => T {
             return (args: object) => {
                 const obj = new clazz();
                 Object.assign(obj, args);
@@ -1140,9 +1141,8 @@ namespace internal {
                 return this.mapper
                     && Jsonizer.reviver<Target>(this.mapper as Mappers<Target>);
             } else {
-                const err = new Error('This instance of replacer wasn\'t yet used in JSON.stringify()');
-                err.name = 'Illegal Access';
-                throw err;
+                const Err = Errors.getClass('Illegal Access', true);
+                throw new Err('This instance of replacer wasn\'t yet used in JSON.stringify()');
             }
         }
 
@@ -1252,9 +1252,8 @@ namespace internal {
          */
         replace(key: string, value: any): any {
             if (this.end) {
-                const err = new Error('This instance of replacer was already used in JSON.stringify(), please create a new one with Jsonizer.replacer()');
-                err.name = 'Illegal Access';
-                throw err;
+                const Err = Errors.getClass('Illegal Access', true);
+                throw new Err('This instance of replacer was already used in JSON.stringify(), please create a new one with Jsonizer.replacer()');
             }
             let check = true; // check whether we need to unstack
             try {
