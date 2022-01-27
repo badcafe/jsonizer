@@ -35,6 +35,8 @@ const personJson = JSON.stringify(person);
 // store or send the data
 ```
 
+Dates in `personJson` will appear as text, and if you parse back that JSON string to a plain object, every date field will be `string` instead of `Date` !
+
 Now, let's use **Jsonizer** 😍
 
 ```typescript
