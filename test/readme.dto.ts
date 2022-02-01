@@ -34,10 +34,7 @@ export namespace Person {
             '.': date => {
                 const [day, montIndex, year] = date.split('/') // don't use new Date(year, montIndex - 1, day)
                     .map(part => parseInt(part));              // because it may shift due to the local time zone
-                const utc = new Date();
-                utc.setUTCHours(0, 0, 0, 0);
-                utc.setUTCFullYear(year, montIndex - 1, day);
-                return utc;            
+                return new Date(Date.UTC(year, montIndex - 1, day));
             }
         },
         hobbies: {
