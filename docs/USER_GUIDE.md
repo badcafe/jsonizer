@@ -490,7 +490,7 @@ Custom errors can of course be processed like any other classes and will be revi
 The following helper may be used to register a singleton class without defining it strictly and bind a reviver to it :
 
 ```typescript
-const Err = Errors.getClass('Not Found', true, 404); // true to supply the same instance on every request
+const NotFoundError = Errors.getClass('Not Found', true, 404); // true to supply the same instance on every parsing
 // a common practice is to have an error code :
 Errors.getCode(notFoundError);
 // 404
@@ -839,16 +839,14 @@ So far, the mappers object of a **target object** could contain entries that are
 
 Similarly, the mappers object of a **target array** could be extended to a range of indexes, e.g. `'8-12'` to match indexes between 8 and 12 (included).
 
-> Since the mappers object entries are enforced by Typescript (and because we wouldn't like to open the entries to any string), we have to extend explicitely the new entries to allow by repeating it in the 3rd parameter type of the mapper : `Mapper<Target, Source, Match>`.
-
 ### Regexp
 
 > RegExp keys are represented as strings, which may introduce additional escapes, e.g. `/\w+Date/.toString()` gives `'/\\w+Date/'`
 
 ```typescript
-//       Target Source   RegExp[]
-//         👇     👇        👇
-@Reviver<Hobby, Hobby, ['/\\w+Date/']>({ // 👈  extend allowed entries in the 3rd type parameter
+//       Target
+//         👇
+@Reviver<Hobby>({
     '.': Jsonizer.Self.apply(Hobby),
     '/\\w+Date/': Date // 👈 matches any field that ends with 'Date'
 })
@@ -886,9 +884,9 @@ otherwise, there is no mapping : the value is kept as-is.
 //     👇  the JSON structure is a tuple
 type CarDTO = [Wheel, Wheel, Wheel, Wheel, Engine];
 
-//     Target Source  range[]
-//       👇     👇       👇
-@Reviver<Car, CarDTO, ['0-3']>({ // 👈  extend allowed entries in the 3rd type parameter
+//     Target Source
+//       👇     👇
+@Reviver<Car, CarDTO>({
     '.': ([w1, w2, w3, w4, e]) => new Car(e, w1, w2, w3, w4),
     '0-3': Wheel, // 👈 matches the four first items
     4: Engine // 👈  we could use '*' for the rest

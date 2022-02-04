@@ -776,9 +776,7 @@ describe('README.md examples', () => {
             expect(hobbyFromJson.lastDate!.toISOString()).toBe(lastDate.toISOString());
         }
         test('Regexp', () => {
-            //       Target Source   RegExp[]
-            //         👇     👇        👇
-            @Reviver<Hobby, Hobby, ['/\\w+Date/']>({ // 👈  extend allowed entries in the 3rd type parameter
+            @Reviver<Hobby>({
                 '.': Jsonizer.Self.apply(Hobby),
                 '/\\w+Date/': Date // 👈 matches any field that ends with 'Date'
             })
@@ -836,9 +834,9 @@ describe('README.md examples', () => {
             //     👇  the JSON structure is a tuple
             type CarDTO = [Wheel, Wheel, Wheel, Wheel, Engine];
 
-            //     Target Source  range[]
-            //       👇     👇       👇
-            @Reviver<Car, CarDTO, ['0-3']>({ // 👈  extend allowed entries in the 3rd type parameter
+            //     Target Source
+            //       👇     👇
+            @Reviver<Car, CarDTO>({
                 '.': ([w1, w2, w3, w4, e]) => new Car(e, w1, w2, w3, w4),
                 '0-3': Wheel, // 👈 matches the four first items
                 4: Engine // 👈  we could use '*' for the rest

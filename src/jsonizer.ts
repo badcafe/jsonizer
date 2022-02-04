@@ -45,6 +45,10 @@ import { Errors } from './errors';
  *          '*': Comment // 👈 delegate to the custom Comment mappers
  *      }
  * }
+ * 
+ * // bind the mapper to the class
+ * // (can also be used as a decorator)
+ * Reviver(threadMappers)(Thread)
  * ```
  * @see [Reviver()](#reviver-2) To bind the mapper to the class
  * @see [[Jsonizer.reviver]] To create a reviver from the mapper
@@ -82,8 +86,6 @@ import { Errors } from './errors';
  *
  * @paramType Target - The actual target class
  * @paramType Source - The JSON representation of `Target` is by default the structural `Target` itself
- * @paramType Match - An array of Regexp matchers if the Source is an object, e.g. `['/\\w+Date/']`,
- *          or an array of range matchers if the Source is an array, e.g. `['8-12']`.
  *
  * ## Customization
  * 
@@ -104,7 +106,6 @@ import { Errors } from './errors';
 export type Mappers<
     Target,
     Source = Target,
-    Match extends Mappers.Matcher<Source, Delim>[] = [],
     Any extends string = '*',
     Self extends string = '.',
     Delim extends string = Source extends Array<any> ? '-' : '/'
@@ -112,27 +113,28 @@ export type Mappers<
         [key in Self]: Reviver.Reference // if it's a reference...
     } & {
         [index : number]: never // ...it's nothing else
-      } /* & {
-            [key in Any | Match[number] | keyof Source]?: never
-        }*/
-      & Mappers.Jokers.Custom<Any, Self, Delim>
+    } & Mappers.Jokers.Custom<Any, Self, Delim>
 ) | ({
         // "this" contains the ancestors in the hierarchy
         [key in Self]?: ((this: any[], args: Source) => Target | any)
     } & (Source extends Array<infer Item>
-        ? ({
+        ? {
             [index : number]: Reviver.Reference | Mappers<Item>
           } & {
-            [key in Any | Match[number]]?: Reviver.Reference | Mappers<Item>
-        } & Mappers.Jokers.Custom<Any, Self, Delim>)
+            [key in Mappers.Matcher.Range<Delim>]: Reviver.Reference | Mappers<Item>
+          } & {
+            [key in Any]?: Reviver.Reference | Mappers<Item>
+          } & Mappers.Jokers.Custom<Any, Self, Delim>
         : Source extends string | number | boolean | null
             ? Mappers.Jokers.Custom<Any, Self, Delim>
-            : ({
+            : {
                 [key in keyof Source]?: Reviver.Reference | Mappers<Source[key]>
               } & {
-                [key in Any | Match[number]]?: Reviver.Reference | Mappers<any>
+                [key in Mappers.Matcher.Regexp<Delim>]: Reviver.Reference | Mappers<any>
+              } & {
+                [key in Any]?: Reviver.Reference | Mappers<any>
               } & Mappers.Jokers.Custom<Any, Self, Delim>)
-    ))
+    )
 
 /**
  * Property related types for mappers.
@@ -163,7 +165,7 @@ export namespace Mappers {
      * }
      * // ok, then rename the special jokers '*',  '.' and     '/'
      * //                           by -say- '**', 'that', and '~' :
-     * ClassMapper<Foo, FooSource, ['~\\w+~'], '**', 'that', '~'> = {
+     * ClassMapper<Foo, FooSource, '**', 'that', '~'> = {
      *     // as soon as they are renamed, the next entry is mandatory :
      *     [Mappers.Jokers.$]: ['**', 'that', '~'],
      *     '**': {
@@ -171,6 +173,7 @@ export namespace Mappers {
      *     }
      *     // 'that' is the optional mapper for *Self* builder
      *     'that': ({'*': star, '.': dot}) => new Foo(star, dot)
+     *     // '~' is the delimiter for Regexp (or for ranges for an array)
      *     '~\\w+~': AnotherMapper
      * }
      * ```
@@ -197,7 +200,6 @@ export namespace Mappers {
          * 
          * When `Any` is not `'*'` or `Self` is not `'.'` or `Delim` is not `'/'` or `'-'`,
          * then this type contains an entry that must contain an array with the new values.
-         * 
          * 
          * @see [[Jokers]]
          */
@@ -246,7 +248,7 @@ export namespace Mappers {
         export type Range<Delim extends string='-'> = `${number}${Delim}${number}`;
 
         /**
-         * Return -if any- the rexgexp mapper or range mapper that matches a property name
+         * Return -if any- the Regexp mapper or range mapper that matches a property name
          * or an array index.
          * 
          * > **Doesn't return the exact match neither the "Any" match.**
@@ -255,7 +257,7 @@ export namespace Mappers {
          * @param prop The property name, or the array index.
          */
         export function getMatchingMapper(mappers: Mappers<any>, prop: string | number): Mappers<any> | undefined {
-            const delim = mappers[Mappers.Jokers.$]?.[2]
+            const delim = (mappers as any)[Mappers.Jokers.$]?.[2]
                 ?? typeof prop === 'string'
                     ? '/'  // regexp delim
                     : '-'; // range delim
@@ -423,8 +425,6 @@ export interface Replacer<Type = any> {
  * 
  * @paramType Target - The actual class to revive
  * @paramType Source - The JSON representation of `Target` is by default the structural `Target` itself
- * @paramType Match - An array of Regexp matchers if the Source is an object, e.g. `['/\\w+Date/']`,
- *          or an array of range matchers if the Source is an array, e.g. `['8-12']`.
  * 
  * @param mappers The mappers of the source fields.
  * 
@@ -434,11 +434,10 @@ export interface Replacer<Type = any> {
 export function Reviver<
     Target,
     Source = Target,
-    Match extends Mappers.Matcher<Source, Delim>[] = [],
     Any extends string = '*',
     Self extends string = '.',
     Delim extends string = Source extends Array<any> ? '-' : '/'
->(mappers: Mappers<Target, Source, Match, Any, Self, Delim>): (target: Class<Target>) => void {
+>(mappers: Mappers<Target, Source, Any, Self, Delim>): (target: Class<Target>) => void {
     return (target: Class<Target>) => {
         // set in the default namespace if it was not already in a namespace
         if (! Namespace.hasNamespace(target)) {
@@ -544,6 +543,9 @@ export namespace Jsonizer {
      *      directly call `.revive()`. That reviver can also be
      *      itself serialized and revived.
      * 
+     * @paramType Target - The actual class to revive
+     * @paramType Source - The JSON representation of `Target` is by default the structural `Target` itself
+     * 
      * @see [User guide - Objects](https://badcafe.github.io/jsonizer/#/README?id=objects)
      * @see [User guide - Arrays](https://badcafe.github.io/jsonizer/#/README?id=arrays)
      * @see [User guide - Nested mapping](https://badcafe.github.io/jsonizer/#/README?id=nested-mappings)
@@ -552,12 +554,11 @@ export namespace Jsonizer {
     export function reviver<
         Target,
         Source = Target,
-        Match extends Mappers.Matcher<Source, Delim>[] = [],
         Any extends string = '*',
         Self extends string = '.',
         Delim extends string = Source extends Array<any> ? '-' : '/'
     >(
-        mappers: Mappers<Target, Source, Match, Any, Self, Delim>
+        mappers: Mappers<Target, Source, Any, Self, Delim>
     ): Reviver<Target> {
         return new internal.Reviver(mappers as any) as any as Reviver;
     }
@@ -842,7 +843,7 @@ namespace internal {
                 : [json]; // init
             try {
                 const isArray = Array.isArray(json);
-                let [Any, Self, delim] = mappers[Mappers.Jokers.$] ?? ['*', '.', isArray ? '-' : '/'];
+                let [Any, Self, delim] = (mappers as any)[Mappers.Jokers.$] ?? ['*', '.', isArray ? '-' : '/'];
                 let selfMapper: undefined | ((args: any) => Target);
                 let anyMapper: undefined | Mappers<any>;
 

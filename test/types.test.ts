@@ -18,7 +18,7 @@ describe('Advanced Jsonizer types', () => {
                 ) {}
             }
 
-            const pm: Mappers<Person, Person, ['/\\w+Date/']> = {
+            const pm: Mappers<Person> = {
                 '/\\w+Date/': Date,
                 hobbies: {
                     '*': {
@@ -38,7 +38,7 @@ describe('Advanced Jsonizer types', () => {
                 '//': 'are you kidding ?'
             }
 
-            const nonSenseMapper: Mappers<Person, FooSource, ['~\\w+Date~', '~date\\w+~'], '**', 'this', '~'> = {
+            const nonSenseMapper: Mappers<Person, FooSource, '**', 'this', '~'> = {
                 // fields
                 '*': 'qname1', // this is not Any
                 '.': 'qname2', // this is not Self
@@ -54,7 +54,7 @@ describe('Advanced Jsonizer types', () => {
                 [Mappers.Jokers.$]: ['**', 'this', '~']
             }
 
-            const nonSenseArrayMapper: Mappers<Person[], FooSource[], ['8~12', '24~42'], '**', 'this', '~'> = {
+            const nonSenseArrayMapper: Mappers<Person[], FooSource[], '**', 'this', '~'> = {
                 // items
                 [0]: 'qname1',
                 [1]: 'qname2',
