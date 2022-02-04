@@ -1,5 +1,12 @@
 # Jsonizer Changelog
 
+## 3.0.0
+
+* Upgrade `typescript` and `ts-node`
+* **Breaking change** : simplification of `Mappers` : the `Match` type parameter is no longer necessary, ranges and Regexp matchers can be safely set within mapping entries.
+
+-----
+
 ### 2.1.0
 
 * Include abstract class in type definition
