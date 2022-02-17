@@ -1165,6 +1165,96 @@ describe('README.md examples', () => {
                 verifyPerson(Person, person, person.name === 'Bob' ? 1998 : 2002);
             }
         });
-    });
+        describe('Plain object with `toJSON()`', () => {
+            function check(person: any) {
+                expect(person.name).toBe('Bob');
+                expect(person.birthDate).toBeInstanceOf(Date);
+                expect(person.birthDate.getUTCFullYear()).toBe(1998);
+            }
+            test('revived with Jsonizer.reviver', () => {
+                function createPerson(name: string, birthDate: Date) {
+                    return {
+                        name,
+                        birthDate,
+                        toJSON() {
+                            return [this.name, this.birthDate] as const
+                        }
+                    }
+                }
+                //                                               Target                      Source
+                //                                                 👇                          👇
+                const personReviver = Jsonizer.reviver<ReturnType<typeof createPerson>, [string, Date]>({
+                    '.': ([name, birthDate]) => createPerson(name, birthDate),
+                    1: Date
+                });
 
+                const person = createPerson('Bob', new Date('1998-10-21'));
+                const personJSON = JSON.stringify(person);
+                expect(personJSON).toBe('["Bob","1998-10-21T00:00:00.000Z"]');
+                const personRevived = JSON.parse(personJSON, personReviver);
+                check(personRevived);
+            });
+            test('revived with a placeholder class', () => {
+                function createPerson(name: string, birthDate: Date) {
+                    return {
+                        name,
+                        birthDate,
+                        toJSON() {
+                            return [this.name, this.birthDate] as const;
+                        },
+                        constructor: PersonFactory
+                    }
+                }
+
+                //                 Target                    Source
+                //                   👇                         👇
+                @Reviver<ReturnType<typeof createPerson>, [string, Date]>({
+                    '.': ([name, birthDate]) => createPerson(name, birthDate),
+                    1: Date
+                })
+                class PersonFactory {} // 👈  it's empty
+
+                const person = createPerson('Bob', new Date('1998-10-21'));
+                const replacer = Jsonizer.replacer();
+                const personJSON = JSON.stringify(person, replacer);
+                expect(personJSON).toBe('["Bob","1998-10-21T00:00:00.000Z"]');
+                const personRevived = JSON.parse(personJSON, replacer.getReviver());
+                check(personRevived);
+            });
+            test('variant', () => {
+                function createPerson(name: string, birthDate: Date) {
+                    const person = {
+                        name,
+                        birthDate
+                    }
+                    Object.defineProperty(person, 'constructor', {
+                        value: PersonFactory,
+                        enumerable: false
+                    });
+                    Object.defineProperty(person, 'toJSON', {
+                        value: function() {
+                            return [this.name, this.birthDate] as const;
+                        },
+                        enumerable: false
+                    });
+                    return person;
+                }
+                //                 Target                    Source
+                //                   👇                         👇
+                @Reviver<ReturnType<typeof createPerson>, [string, Date]>({
+                    '.': ([name, birthDate]) => createPerson(name, birthDate),
+                    1: Date
+                })
+                @Namespace('org.example.com')
+                class PersonFactory {} // 👈  it's empty
+
+                const person = createPerson('Bob', new Date('1998-10-21'));
+                const replacer = Jsonizer.replacer();
+                const personJSON = JSON.stringify(person, replacer);
+                expect(personJSON).toBe('["Bob","1998-10-21T00:00:00.000Z"]');
+                const personRevived = JSON.parse(personJSON, replacer.getReviver());
+                check(personRevived);
+            });
+        });
+    });
 });

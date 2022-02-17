@@ -1344,6 +1344,88 @@ const dataFromJson = JSON.parse(jsonTuple, dynamicReviver); // 👈  you have it
 // as usual, dataFromJson contains augmented typed data
 ```
 
+### Plain object with `toJSON()`
+
+Letting Jsonizer capturing a reviver is not magik. If you have the (bad ?) idea to plug on a plain object a specific `.toJSON()` function, the serialization will work fine, and the parsing too as long as you supply the reviver. But if you expect Jsonizer to capture the reviver dynamically, you have to embrace fully the concept by :
+
+* creating a place holder class decorated with `@Reviver` for your plain object
+* tell your plain object that it can be constructed by it
+
+Concretely, if you start with something that looks like this :
+
+```typescript
+function createPerson(name: string, birthDate: Date) {
+    return {
+        name,
+        birthDate,
+        toJSON() {
+            return [this.name, this.birthDate] as const;
+        }
+    }
+}
+```
+
+That reviver will work normally :
+
+```typescript
+//                                               Target                      Source
+//                                                 👇                          👇
+const personReviver = Jsonizer.reviver<ReturnType<typeof createPerson>, [string, Date]>({
+    '.': ([name, birthDate]) => createPerson(name, birthDate),
+    1: Date
+});
+```
+
+But if you want to capture it, you'll have to create a placeholder class that can reverse the process.
+Since that placeholder class is bound to a reviver, let's call it a factory :
+
+```typescript
+//                 Target                    Source
+//                   👇                         👇
+@Reviver<ReturnType<typeof createPerson>, [string, Date]>({
+    '.': ([name, birthDate]) => createPerson(name, birthDate),
+    1: Date
+})
+class PersonFactory {} // 👈  it's empty because it's just a placeholder class
+```
+
+But to make working the capture phase with a replacer, the plain object has to be bound to the placeholder class :
+
+```typescript
+function createPerson(name: string, birthDate: Date) {
+    return {
+        name,
+        birthDate,
+        toJSON() {
+            return [this.name, this.birthDate] as const;
+        },
+        constructor: PersonFactory
+    }
+}
+```
+
+Notice that the following code is more correct :
+
+```typescript
+function createPerson(name: string, birthDate: Date) {
+    const person = {
+        name,
+        birthDate
+    }
+    Object.defineProperty(person, 'constructor', {
+        value: PersonFactory,
+        enumerable: false
+    });
+    Object.defineProperty(person, 'toJSON', {
+        value: function() {
+            return [this.name, this.birthDate] as const;
+        },
+        enumerable: false
+    });
+    return person;
+}
+```
+
 ### Optimization
 
 When generating the revivers, objects that are not class instances may have a small impact on performances.
