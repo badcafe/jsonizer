@@ -1052,6 +1052,7 @@ namespace internal {
         return Object.fromEntries(
             Object.entries(mappers ?? {})
                 // omit     {'.' : () => new ...}
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 .filter(([key, mapper]) =>
                     typeof mapper === 'string'
                     // eslint-disable-next-line no-sparse-arrays
