@@ -437,8 +437,8 @@ export function Reviver<
     Any extends string = '*',
     Self extends string = '.',
     Delim extends string = Source extends Array<any> ? '-' : '/'
->(mappers: Mappers<Target, Source, Any, Self, Delim>): (target: Class<Target>) => void {
-    return (target: Class<Target>) => {
+>(mappers: Mappers<Target, Source, Any, Self, Delim>): (target: Class) => void {
+    return (target: Class) => {
         // set in the default namespace if it was not already in a namespace
         if (! Namespace.hasNamespace(target)) {
             Namespace('')(target);
@@ -633,10 +633,12 @@ export namespace Jsonizer {
      */
     export const REPLACER = function getJSON(key: string, value: any): any { // this is not 'toJSON()'
         // (key, value): any, just to have the signature of a replacer
-        return value?.[Jsonizer.toJSON]
-            ? value[Jsonizer.toJSON]() // may return null or undefined
-            // else normal behaviour, potentially let go on with value.toJSON()
-            : value;
+        return value?.[Jsonizer.toJSON]?.() // may return null or undefined
+            ?? value // else normal behaviour, potentially let go on with value.toJSON()
+// TODO :IMPORTANT : this doesn't work beause it runs
+//                              value?.[Jsonizer.toJSON]?.()
+//                  on value after .toJSON(), whereas is have to be run on value before calling .toJSON()
+// TODO => we must use a context in every case and don't use shortcuts
     }
 
     /**
@@ -825,7 +827,7 @@ namespace internal {
                 ? key === '' // is it a top standalone class ?
                     ? { '.': Namespace.getQualifiedName(this[Clazz]!) }
                     : Namespace.getQualifiedName(this[Clazz]!) // just the class qname
-                : toJSON(this[Mappers$]); // the tree
+                : internal.toJSON(this[Mappers$]); // the tree
         }
 
         // the "do revive function"
@@ -929,6 +931,9 @@ namespace internal {
                         anyMapper = mapper as Mappers<any>;
                     } else if (key === Self) {
                         // apply '.' builder after the members
+//                        if (mapper instanceof Reviver) {
+//                            mapper = mapper[Mappers$] as any;
+//                        }
                         if (typeof mapper === 'string') {
                             // mapper is a qualified name
                             mapper = Namespace.getClass(mapper);
@@ -1043,15 +1048,15 @@ namespace internal {
 
     }
 
-    const toJSON = (mappers: Mappers<Reviver, any> | Reviver.Reference, recurse = true): any =>
-        Object.fromEntries(
+    export function toJSON(mappers: Mappers<Reviver, any> | Reviver.Reference, recurse = true): any {
+        return Object.fromEntries(
             Object.entries(mappers ?? {})
                 // omit     {'.' : () => new ...}
                 .filter(([key, mapper]) =>
                     typeof mapper === 'string'
                     // eslint-disable-next-line no-sparse-arrays
-                    || (key !== ((mappers as any)[Mappers.Jokers.$] ?? [,'.'])[1]
-                        && mapper instanceof Function &&
+                    || (/*key === ((mappers as any)[Mappers.Jokers.$] ?? [,'.'])[1]
+                        && */typeof mapper === 'function' &&
                             // a reviver       |   @Reviver class
                             (mapper[Mappers$] || ReviverAPI.get(mapper))
                         )
@@ -1065,39 +1070,15 @@ namespace internal {
                         ? mapper
                         : mapper instanceof Reviver
                             ? mapper // internal.Reviver => unchanged because recurse to internal.Reviver.toJSON()
-                            : mapper instanceof Function && ReviverAPI.get(mapper) // a class with @Reviver ???
+                            : typeof mapper === 'function' && ReviverAPI.get(mapper) // a class with @Reviver ???
                                 ? Namespace.getQualifiedName(mapper) // => qname
                                 : recurse
-                                    ? toJSON(mapper) // just a mapper litteral => recurse
+                                    ? internal.toJSON(mapper) // just a mapper litteral => recurse
                                     : mapper // toJSON(m, false) NOT DEEP
                     ]
                 )
         );
-
-    // recompose the Stack for replacer()
-    type Stack = {
-        mapper: any, // Mappers, but with less constraints on keys
-        key: string | number, // current key
-        size: number, // number of remaining items for a level
-                      // when 0 is reached : pop() from the stack
-        count: number // increment for each json entry
-    } & ({
-            isArray: true,
-            // mapping keys[], in order:
-            keys: Keys[]
-        } | {
-            isArray: false
-        })
-
-    // arrays can have their mappers optimized :
-    // consecutive indices that have the same mappings are merged in a range
-    type Keys = {
-        key: string, // indice or range, as a string
-        from: number, // indice
-        to?: number   //   or range
     }
-
-    const UNMAPPED_KEYS = Symbol.for(`${namespace}.UnmappedKeys`); // used to collect keys that are not mapped
 
     /**
      * Replacer implementation
@@ -1111,17 +1092,17 @@ namespace internal {
      * 2021-05-18T14:01:10.995Z string false
      * ```
      * 
-     * ...well, when the replacer is called with objects, the value passed is already
-     * stringified, and this is definitively what we don't want. Therefore, for the root
-     * there is a special handling directly in `JSON.stringify()`.
+     * ...well, when the replacer is called with objects that has a `toJSON()` function,
+     * the value passed is already transformed (the data is stringified), and this is
+     * definitively what we don't want. Therefore, for the root there is a special handling
+     * directly in `JSON.stringify()`.
      * 
      * @see [[init]]
      */
     export class Replacer extends Function {
 
         end = false;
-        mapper: Mappers<any> & { [UNMAPPED_KEYS]? : Set<string> } | undefined;
-        stack: Stack[] = [];
+        stack: Replacer.Context[] = [];
 
         constructor() {
             super();
@@ -1138,322 +1119,319 @@ namespace internal {
         }
 
         getReviver<Target>(): ReviverAPI<Target> | undefined {
-            if (this.end) {
-                return this.mapper
-                    && Jsonizer.reviver<Target>(this.mapper as Mappers<Target>);
-            } else {
+            return this.isEmpty()
+                ? undefined
+                : Jsonizer.reviver<Target>(this.stack[0].mapper as Mappers<Target>);
+        }
+
+        isEmpty(): boolean {
+            this.checkEnd();
+            return this.stack.length === 0
+                || Object.keys(this.stack[0].mapper).length === 0;
+        }
+
+        private checkEnd() {
+            if (! this.end) {
                 const Err = Errors.getClass('Illegal Access', true);
                 throw new Err('This instance of replacer wasn\'t yet used in JSON.stringify()');
             }
         }
 
-        isEmpty(): boolean {
-            return ! this.mapper
-                || Object.keys(this.mapper).length === 0;
-        }
-
-        /**
-         * Initialize our Replacer with the root value to stringify.
-         * 
-         * @param root The value to stringify.
-         * @param replacer If it is our Replacer, check if the root
-         *      value class has a Reviver and set it as the 'Self' mapper.
-         */
-        static init(root: any, replacer?: Partial<Replacer>): (key: string, value: any) => any {
-            if (replacer !== Jsonizer.REPLACER && replacer?.getReviver && root && ! isPrimitive(root)) {
-                // lookup for the reviver here because it can't be captured later
-                const qname = Replacer.getMapperQName(root);
-                if (qname) {
-                    replacer.mapper = {
-                        '.': qname // ...and set it as the 'self' mapper
-                    };
-                    // nothing more is expected because {'.': 'Foo'} is enough
-                    replacer.end = true;
-                    // downgrade to something more simple
-                    return Jsonizer.REPLACER; // won't track anything more
-                } else {
-                    // objects, arrays
-                    replacer.mapper = {};
-                }
-            }
-            // as-is, maybe a normal replacer
-            return replacer as (this: any, key: string, value: any) => any;
-        }
-
-        static getMapperQName(value: any): any {
-            if (value !== undefined) {
-                const ctor = value.constructor; // get the class
-                return ctor
-                    && ctor !== Object
-                    && ctor !== Array
-                    && ReviverAPI.get(ctor) // if it has a Reviver...
-                    && Namespace.getQualifiedName(ctor); // ... get its qname
-            }
+        static getReviverClass(value: any): string | undefined {
+            const clazz = value?.constructor; // get the class
+            return clazz
+                && clazz !== Object
+                && clazz !== Array
+                && ReviverAPI.get(clazz) // return its Reviver if any // if it has a Reviver...
+                ? Namespace.getQualifiedName(clazz) // ... get its qname
+                : undefined
         }
 
         /**
          * Set a mapper on top of the stack. Primitives are not mapped.
          * The top of the stack has to be an object.
          */
-        setMapper(key: string | number, value: any): void {
-            const current = this.stack[this.stack.length -1];
-            current.count++;
-            if (typeof current.mapper === 'object') {
-                if (isPrimitive(value)) {
-                    // capture primitives in a Set
-                    current.mapper[UNMAPPED_KEYS]!.add(key as string);
-                } else {
-                    const qname: string = Replacer.getMapperQName(value);
-                    if (qname) {
-                        if (current.isArray) { // array mappings optimization
-                            // store keys as range when possible
-                            if (current.keys.length === 0) {
-                                current.keys.push({
-                                    from: key as number,
-                                    key: key = String(key)
-                                });
-                            } else {
-                                const last = current.keys[current.keys.length -1];
-                                const previousKey = last.key; // might be a range
-                                // optimization can be made as one goes along
-                                // only with Reviver qnames
-                                // for other cases, see unstack() below
-                                if (Math.max(last.from, last.to ?? 0) + 1 === key // adjacent only
-                                    && current.mapper[previousKey] === qname
-                                ) {
-                                    delete current.mapper[previousKey]; // replace previous mapping
-                                    // expand to range
-                                    last.to = key as number; // updated in current.keys
-                                    key = last.key = `${String(last.from)}-${String(last.to)}`
-                                    // current.mapper[key] = qname; // new key
-                                    current.count--; // counted in the range
-                                } else {
-                                    current.keys.push({
-                                        from: key as number,
-                                        key: key = String(key)
-                                    });
-                                }
-                            }
-                        }
-                        current.mapper[key] = qname;
-                    } else if (current.isArray) {
-                        // else the key is bound to an object mapper {}, that might be populate later
+        private setMapper(current: Replacer.Context, key: string | number, reviver: string | undefined, value: any): void {
+            if (! reviver/*isPrimitive(value)*/) {
+                // capture primitives in a Set
+                (current.mapper as any)[Replacer.UNMAPPED_KEYS]!.add(String(key));
+            }
+            if (reviver) {
+                if (current.isArray) { // array mappings optimization
+                    current.count++;
+                    // store keys as range when possible
+                    if (current.keys.length === 0) {
                         current.keys.push({
                             from: key as number,
                             key: key = String(key)
                         });
+                    } else {
+                        const last = current.keys[current.keys.length -1];
+                        const previousKey = last.key; // might be a range
+                        // optimization can be made as one goes along
+                        // only with Reviver classes
+                        // for other cases, see unstack() below
+                        if (Math.max(last.from, last.to ?? 0) + 1 === key // adjacent only
+                            && (current.mapper as any)[previousKey] === reviver
+                        ) {
+                            delete (current.mapper as any)[previousKey]; // replace previous mapping
+                            // expand to range
+                            last.to = key as number; // updated in current.keys
+                            key = last.key = `${String(last.from)}-${String(last.to)}`
+                            // current.mapper[key] = qname; // new key
+                            current.count--; // counted in the range
+                        } else {
+                            current.keys.push({
+                                from: key as number,
+                                key: key = String(key)
+                            });
+                        }
                     }
+                }
+                (current.mapper as any)[key] = reviver;
+            } else if (current.isArray) {
+                current.count++;
+                // else the key is bound to an object mapper {}, that might be populate later
+                if (! isPrimitive(value)) {
+                    current.keys.push({
+                        from: key as number,
+                        key: key = String(key)
+                    });
                 }
             }
         }
+
+        pushContext(context: Replacer.Context) {
+            const parent = this.stack[this.stack.length -1];
+            if (parent) {
+                context.parent = parent;
+            }
+            if (context.mapper) {
+                (context.mapper as any)[Replacer.UNMAPPED_KEYS] = new Set();
+            }
+            this.stack.push(context);
+            if (parent && context.mapper
+                // ensure to avoid to set {'': itself} because the parent mapper has been recycled
+                && parent.mapper !== context.mapper
+            ) {
+                (parent.mapper as any)[context.key] = context.mapper;
+            }
+            return context;
+        }
+
+        // the step replacer(key, value) is called in sequence
+        // we don't know when we exit a level in the hierarchy                => push some context in a stack
+        // we don't have the original value, that might have been transformed => so we have to set it for each step before entering it
+        // each item belongs to some context that has a size that the item decrements
+        // when the size is 0, we can pop() the stack, and retest the new context size on top of the stack
+        // when a new context is push() in the stack, its size is left unkown, and will be computed by its first child, in order to prevent premature unstacking
+        // this is because the context is pushed by the parent for its children before being transformed
 
         /**
          * The actual 'replacer' function that will be invoked while
          * running `JSON.stringify()`
          */
         replace(key: string, value: any): any {
-            if (this.end) {
-                const Err = Errors.getClass('Illegal Access', true);
-                throw new Err('This instance of replacer was already used in JSON.stringify(), please create a new one with Jsonizer.replacer()');
-            }
-            let check = true; // check whether we need to unstack
+            // we have to consider 3 values
+            // -value  : when entering here is the result of toJSON()
+            // -before : before calling toJSON() was set in context.before[key]
+            // -after  : might not be the result of toJSON()
+            //                           but the result of [Jsonizer.toJSON]()
+            const context = this.stack[this.stack.length -1];
             try {
-                const newMapper = () => {
-                    const parent = this.stack.length > 0
-                        ? this.stack[this.stack.length -1].mapper
-                        : this.mapper
-                    const mapper = typeof parent !== 'string'
-                        && this.stack.length === 0
-                            ? this.mapper
-                            : {}
-                        // else no further nested mapping needed : a qname ('string') is already set
-                    const matchKey = this.stack.length === 0 || ! this.stack[this.stack.length -1].isArray
-                        ? key
-                        : Number(key);
-                    const current = parent[key] // exact match
-                        ?? Mappers.Matcher.getMatchingMapper(parent, matchKey) // regexp or range match
-                    if (mapper !== parent
-                        && (/*typeof parent[key] === 'object'  // might be boolan (false) or string (qname)
-                            || parent[key] === undefined*/
-                            current === undefined) // don't override
-                    ) {
-                        // attach to its parent
-                        parent[key] = mapper;
-                    }
-                    if (typeof mapper === 'object' && ! mapper[UNMAPPED_KEYS]) {
-                        mapper[UNMAPPED_KEYS] = new Set();
-                    }
-                    return mapper;
+                const before = context.before[key];
+                const after = before === null || before === undefined || before === true || before === false
+                    ? value
+                    : before[Jsonizer.toJSON]?.()
+                        ?? value; // else unchanged, it is the result of toJSON()
+                context.after[key] = after; // save the final value
+
+                const [size, isArray] = Array.isArray(after)
+                    ? [after.length, true]
+                    : after && typeof after === 'object'
+                        ? [Object.keys(after).length, false]
+                        : [0]; // this is not a collection
+                let reviver;
+                // if there is a slot
+                if (typeof context.mapper === 'object') {
+                    // find the reviver for the original value if any, before it was transformed
+                    reviver = Replacer.getReviverClass(before);
+                    this.setMapper(
+                        context,
+                        context.parent
+                            ? context.isArray
+                                ? Number(key)
+                                : key
+                            : '.',
+                        reviver,
+                        before
+                    );
+                } // else we don't need to capture more transformations
+                if (size > 0) { // don't push a new context for an empty object or array
+                    const mapper: any = reviver === undefined && typeof context.mapper === 'object'
+                        ? context.parent === undefined // is root ?
+                            ? context.mapper // recycle
+                            : {} // collect submappers
+                        : undefined // don't collect anything more
+                    this.pushContext({
+                        size,
+                        isArray,
+                        before: after, // after is the collection that contains items before being transformed
+                        after: {},
+                        mapper,
+                        key,
+                        count: 0,
+                        keys: []        
+                    });
                 }
-                if (isPrimitive(value)) {
-                    if (this.stack.length === 0) { // root
-                        this.end = true;
-                    }
-                    return value;
-                } else if (Array.isArray(value)) {
-                    if (value.length > 0) {
-                        const mapper = newMapper();
-                        this.stack.push({
-                            isArray: true,
-                            mapper,
-                            key, // this is the host key
-                            size: value.length,
-                            keys: [],
-                            count: 0
-                        });
-                        check = false; // skip = prevent pop()
-                        for (let i = 0; i < value.length; i++) {
-                            // we can't set the mapper in the next call of replace(key: string, value: any)
-                            // because value instances would be already stringified
-                            // therefore we set it the upper level :
-                            this.setMapper(i, value[i]);
-                        }
-                    }
-                    return Jsonizer.REPLACER(key, value); // array can be subcast
-                } else if (typeof value === 'object') {
-                    const keys = new Set<string>();
-                    for (const prop in value) {
-                        if (Object.prototype.hasOwnProperty.call(value, prop)) { // eslint no-prototype-builtins
-                            keys.add(prop);
-                            if (keys.size === 1) { // to do once
-                                const mapper = newMapper();
-                                this.stack.push({
-                                    isArray: false,
-                                    mapper,
-                                    key, // this is the host key
-                                    size: 1, // increment later 🚩
-                                    count: 0
-                                });
-                                check = false; // skip = prevent pop()
-                            } else {
-                                this.stack[this.stack.length -1].size++; // here 🚩
-                            }
-                            // we can't set the mapper in the next call of replace(key: string, value: any)
-                            // because value instances would be already stringified
-                            // therefore we set it the level above :
-                            this.setMapper(prop, value[prop]);
-                        }
-                    }
-                    return Jsonizer.REPLACER(key, value);
-                } else {
-                    return value; // function: left as-is
-                    // will be set to null in [] or undefined and discarded in {}
-                }
+                // function: left as-is
+                // will be set to null in [] or undefined and discarded in {}
+                return after;
+            } catch (r) {
+//                console.log(r);
             } finally {
-                const unStack = () => {
-                    if (this.stack.length === 0) {
-                        this.end = true;
-                    } else {
-                        const current = this.stack[this.stack.length -1];
-                        current.size--;
-                        if (current.size === 0) {
-                            this.stack.pop(); // effective unstack
-                            if (current.isArray) { // array mappings optimization
-                                // optimizations on qname made on setMapper(), see above
-                                let maybeTuple = true; // arbitrary heuristic
-                                if (current.keys.length > 1) {
-                                    // check consecutive mappings
-                                    // the following optimization is for combined mappings
-                                    // that are known on unstacking
-                                    current.keys = current.keys.reduce<Keys[]>((prev, curr) => {
-                                        if (curr.to) {
-                                            maybeTuple = false; // a range is not a tuple
-                                        }
-                                        // can we compare with the previous ?
-                                        if (prev.length > 0) {
-                                            const other = prev[prev.length -1];
-                                            const mapper = current.mapper[curr.key];
-                                            function missings(key: string, mapperHas: any, mapperHasNot: any) {
-                                                if (mapperHasNot[UNMAPPED_KEYS]?.has(key)) {
-                                                    // don't merge if the key MUST NOT be mapped (it is a primitive)
-                                                    return false;
-                                                }
-                                                // if some keys are missing, check wether they can be merge
-                                                const submapper = Mappers.Matcher.getMatchingMapper(mapperHasNot, Number(key)) // range match
-                                                    ?? mapperHasNot['*'] // any match (if defined)
-                                                if (submapper) {
-                                                    if (deepEquals(mapperHas[key], submapper, missings)) {
-                                                        mapperHasNot[key] = submapper; // patch
-                                                        return true;
-                                                    } else {
-                                                        return false;
-                                                    }
-                                                } else {
-                                                    mapperHasNot[key] = mapperHas[key]; // patch
-                                                    return true;
-                                                }
-                                            }
-                                            if (Math.max(other.from, other.to ?? 0) + 1 === curr.from // adjacent only
-                                                // check combined mappings equality
-                                                && deepEquals(mapper, current.mapper[other.key], missings)
-                                            ) {
-                                                // merge unmapped keys
-                                                for (const k of current.mapper[curr.key][UNMAPPED_KEYS]) {
-                                                    mapper[UNMAPPED_KEYS].add(k);
-                                                }
-                                                // old mappers
-                                                delete current.mapper[curr.key];
-                                                delete current.mapper[other.key];
-                                                // adjust
-                                                current.count--;
-                                                // merge
-                                                other.to = curr.to ?? curr.from;
-                                                other.key = `${other.from}-${other.to}`;
-                                                // new mapper
-                                                current.mapper[other.key] = mapper;
-                                                maybeTuple = false;
-                                            } else {
-                                                prev.push(curr); // unchanged
-                                            }
-                                        } else {
-                                            prev.push(curr); // first item
-                                        }
-                                        return prev;
-                                    }, []);
-                                    // current.keys are up to date
-                                }
-                                // the last is (almost) always the 'Any' key
-                                if (current.keys.length > 0
-                                    // no holes in the sequence (otherwise, some keys ARE NOT mapped)
-                                    && current.keys.length === current.count
-                                    // keep tuples as-is, for (arbitrary) convenience
-                                    // (tuples are assumed to have more than one items without 2 equals consecutive items)
-                                    && (current.keys.length === 1 || ! maybeTuple)
-                                ) {
-                                    const lastKey = current.keys[current.keys.length -1].key;
-                                    current.mapper['*'] = current.mapper[lastKey];
-                                    delete current.mapper[lastKey];
-                                }
-                            }
-                            // final cleanup: prune empty mappings
-                            for (const key in current.mapper) {
-                                const sub = current.mapper[key];
-                                if (typeof sub === 'boolean'
-                                    || (typeof sub === 'object' && Object.keys(sub).length === 0)
-                                ) {
-                                    delete current.mapper[key];
-                                }
-                            }
-                            unStack();
-                            if (this.stack.length === 0) {
-                                this.end = true;
-                            }
-                        } // else level not yet finished, let it in the stack
-                    }
-                }
-                if (check) {
-                    unStack();
-                }
+                context.size--; // consume
+                this.unStack();
             }
         }
 
+        private unStack() {
+            // maybe things were pushed in the stack
+            const top = this.stack[this.stack.length -1];
+            if (top.size === 0) {
+                if (top.isArray) { // array mappings optimization
+                    // optimizations on qname made on setMapper(), see above
+                    let maybeTuple = true; // arbitrary heuristic
+                    if (top.keys.length > 1) {
+                        // check consecutive mappings
+                        // the following optimization is for combined mappings
+                        // that are known on unstacking
+                        top.keys = top.keys.reduce<Replacer.Keys[]>((prev, curr) => {
+                            if (curr.to) {
+                                maybeTuple = false; // a range is not a tuple
+                            }
+                            // can we compare with the previous ?
+                            if (prev.length > 0) {
+                                const other = prev[prev.length -1];
+                                const mapper = (top.mapper as any)[curr.key];
+                                function missings(key: string, mapperHas: any, mapperHasNot: any) {
+                                    if (mapperHasNot[Replacer.UNMAPPED_KEYS]?.has(key)) {
+                                        // don't merge if the key MUST NOT be mapped (it is a primitive)
+                                        return false;
+                                    }
+                                    // if some keys are missing, check wether they can be merge
+                                    const submapper = Mappers.Matcher.getMatchingMapper(mapperHasNot, Number(key)) // range match
+                                        ?? mapperHasNot['*'] // any match (if defined)
+                                    if (submapper) {
+                                        if (deepEquals(mapperHas[key], submapper, missings)) {
+                                            mapperHasNot[key] = submapper; // patch
+                                            return true;
+                                        } else {
+                                            return false;
+                                        }
+                                    } else {
+                                        mapperHasNot[key] = mapperHas[key]; // patch
+                                        return true;
+                                    }
+                                }
+                                if (Math.max(other.from, other.to ?? 0) + 1 === curr.from // adjacent only
+                                    // check combined mappings equality
+                                    && deepEquals(mapper, (top.mapper as any)[other.key], missings)
+                                ) {
+                                    // merge unmapped keys
+                                    for (const k of (top.mapper as any)[curr.key][Replacer.UNMAPPED_KEYS]) {
+                                        mapper[Replacer.UNMAPPED_KEYS].add(k);
+                                    }
+                                    // old mappers
+                                    delete (top.mapper as any)[curr.key];
+                                    delete (top.mapper as any)[other.key];
+                                    // adjust
+                                    top.count--;
+                                    // merge
+                                    other.to = curr.to ?? curr.from;
+                                    other.key = `${other.from}-${other.to}`;
+                                    // new mapper
+                                    (top.mapper as any)[other.key] = mapper;
+                                    maybeTuple = false;
+                                } else {
+                                    prev.push(curr); // unchanged
+                                }
+                            } else {
+                                prev.push(curr); // first item
+                            }
+                            return prev;
+                        }, []);
+                        // current.keys are up to date
+                    }
+                    // the last is (almost) always the 'Any' key
+                    if (top.keys.length > 0
+                        // no holes in the sequence (otherwise, some keys ARE NOT mapped)
+                        && top.keys.length === top.count
+                        // keep tuples as-is, for (arbitrary) convenience
+                        // (tuples are assumed to have more than one items without 2 equals consecutive items)
+                        && (top.keys.length === 1 || ! maybeTuple)
+                    ) {
+                        const lastKey = top.keys[top.keys.length -1].key;
+                        (top.mapper as any)['*'] = (top.mapper as any)[lastKey];
+                        delete (top.mapper as any)[lastKey];
+                    }
+                }
+                // final cleanup: prune empty mappings
+                for (const key in top.mapper) {
+                    const sub = (top.mapper as any)[key];
+                    if (typeof sub === 'boolean'
+                        || (typeof sub === 'object' && Object.keys(sub).length === 0)
+                    ) {
+                        delete (top.mapper as any)[key];
+                    }
+                }
+                if (this.stack.length > 1) {
+                    this.stack.pop(); // effective unstack
+                    // is there more things to unstack ???
+                    this.unStack();
+                }
+            } // else level not yet finished, let it in the stack
+        }
+
         toString(): string {
-            return (this.mapper
-                && JSON.stringify(
-                    toJSON(this.mapper)
-                )
+            return (
+                this.isEmpty()
+                    ? undefined
+                    : this.stack[0].mapper
+                        && JSON.stringify(internal.toJSON(this.stack[0].mapper))
             )!;
         }
+    }
+
+    export namespace Replacer {
+        export const UNMAPPED_KEYS = Symbol.for(`${namespace}.UnmappedKeys`); // used to collect keys that are not mapped
+
+        // recompose the Stack for replacer()
+        export type Context = {
+            isArray: boolean | undefined, // this is not "value is array", but "transformed value is array"
+            parent?: Context,
+            mapper: Mappers<any>, // Mappers to revive the origValue,
+            key: string | number, // current key
+            before: any, // the value, before toJSON() call
+            after: any, // the value, after [Jsonizer.toJSON]() call
+            size: number, // the remaining values (object entries or array items) that will be processed
+                         // when 0 is reached : pop() from the stack
+            count: number, // increment for each json entry
+            // mapping keys[], in order:
+            keys: Keys[], // applies to values transformed to array
+    //        from?: number,
+    //        to?: number,
+    //        last: Mappers<any>
+        }
+    
+        // arrays can have their mappers optimized :
+        // consecutive indices that have the same mappings are merged in a range
+        export type Keys = {
+            key: string, // indice or range, as a string
+            from: number, // indice
+            to?: number   //   or range
+        }
+    
     }
 }
 
@@ -1470,7 +1448,8 @@ type ReviverAPI<Target> = Reviver<Target>;
  * > ```
  * > "Unable to patch JSON.stringify(), use stringify() instead"
  * > ```
- * > then use this function instead of `JSON.stringify()`.
+ * > it means that your runtime environment doesn't allow patching then
+ * > use this function instead of `JSON.stringify()`.
  * 
  * ## Note
  * 
@@ -1482,22 +1461,41 @@ type ReviverAPI<Target> = Reviver<Target>;
     // stringify(value: any, replacer?: (number | string)[] | null, space?: string | number): string;
     value: any,
     replacer?: (number | string)[] | ((this: any, key: string, value: any) => any) | null | undefined,
-    space?: string | number | undefined): string
-{
-    if ((replacer as Reviver)?.revive) {
+    space?: string | number | undefined
+): string {
+    if (replacer instanceof internal.Reviver) {
         throw new TypeError('Unable to stringify with a reviver ; please pass a replacer instead');
     }
-    // patching JSON.stringify() :
-    //    - if our Replacer is supplied, handle properly the root value
-    //              (because the original data can't be handled elsewhere:
-    //                  its toJSON() will be already call)
-    //    - else not our concern
-    replacer = internal.Replacer.init(value, replacer as Replacer);
-    if (replacer === Jsonizer.REPLACER) {
-        value = replacer('', value);
+    if (replacer instanceof internal.Replacer && replacer.end) {
+        const Err = Errors.getClass('Illegal Access', true);
+        throw new Err('This instance of replacer was already used in JSON.stringify(), please create a new one with Jsonizer.replacer()');
     }
-    // go !
-    return jsonStringify(value, replacer, space);
+    // in every case use Jsonizer.replacer() because we need the context for
+    // running [Jsonizer.toJSON]() on the value BEFORE it is transformed with .toJSON()
+    replacer = replacer === Jsonizer.REPLACER
+        ? Jsonizer.replacer()
+        : replacer;
+    try {
+        if (replacer instanceof internal.Replacer) {
+            // the context that holds the root describes an object with a single item
+            replacer.pushContext({
+                size: 1,
+                isArray: false,
+                before: {'' : value }, // the root value before calling .toJSON() on it
+                after: {}, // will contain the root value after transformation
+                mapper: {},
+                key: '',
+                count: 0,
+                keys: []
+            });
+        } // else not our concern
+        // go !
+        return jsonStringify(value, replacer as any, space);
+    } finally {
+        if (replacer instanceof internal.Replacer) {
+            replacer.end = true; // prevent reusing it
+        }
+    }
 }
 
 const jsonStringify = JSON.stringify;
@@ -1511,7 +1509,7 @@ try {
 // final wiring, can't be used as class decorators on themselves
 
 Namespace(Jsonizer.NAMESPACE)(internal.Reviver);
-Reviver<internal.Reviver, Mappers<internal.Reviver, any>>({
+Reviver<internal.Reviver, Mappers<internal.Reviver>>({
     '.': mappers => new internal.Reviver(mappers) // Jsonizer.reviver(mappers)
 })(internal.Reviver);
 

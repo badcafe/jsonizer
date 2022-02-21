@@ -1,5 +1,13 @@
 # Jsonizer Changelog
 
+## 4.0.0
+
+* Fix corner case issues of `Jsonizer.replacer()` when the target type is destructured to a different DTO.
+    > The algorithm was drastically simplified.
+* **Breaking change** : Now if the captured reviver is empty, its string representation returns `undefined` instead of `{}`. This let you get it anyway with `replacer.toString() ?? '{}'`?
+
+-----
+
 ## 3.0.0
 
 * Upgrade `typescript` and `ts-node`
@@ -22,6 +30,8 @@
 * **Breaking change** : `[Jsonizer.toJSON]()` was a replacement of `.toJSON()` when using `JSON.stringify()` ; now you have to opt-in to Jsonizer's behaviour by passing a replacer : using Jsonizer's replacer already works (since this is expected), but `JSON.stringify(data)` have to be replaced by `JSON.stringify(data, Jsonizer.REPLACER)` if you want to apply the custom `[Jsonizer.toJSON]()` functions available.
 * Changing Jsonizer's internal namespace to `npm:@badcafe/jsonizer`
 * Documentation improvement
+
+-----
 
 ## 1.0.0
 

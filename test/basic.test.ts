@@ -73,7 +73,7 @@ describe('Stringify with Jsonizer.replacer() gives the expected mapper', () => {
     describe('with 3rd party class', () => {
         test('Buffer', async () => {
             const replacer = Jsonizer.replacer<Buffer>();
-            const buf = Buffer.from('ceci est un test');
+            const buf = Buffer.from('abc');
             const json = JSON.stringify(buf, replacer, 4);
             const reviver = replacer.getReviver();
             const jsonReviver = JSON.stringify(reviver);
@@ -179,7 +179,8 @@ describe('Parse with generated reviver gives the expected type hierarchy', () =>
         });
         test('[Buffer]', async () => {
             const replacer = Jsonizer.replacer<Buffer[]>();
-            const buf = [Buffer.from('ceci est un test')];
+            const buf = [Buffer.from('abc')];
+            const jsonInvariant = JSON.stringify(buf, null, 4);
             const json = JSON.stringify(buf, replacer, 4);
             const reviver = replacer.getReviver();
             const bufRevived = JSON.parse(json, reviver);
@@ -341,8 +342,8 @@ describe('Parse/stringify with core JSON types', () => {
                 const replacer = Jsonizer.replacer();
                 const json = JSON.stringify(data, replacer, 4);
                 expect(json).toEqual(jData);
-                expect(replacer.getReviver()).toBeDefined();
-                expect(replacer.toString()).toEqual('{}');
+                expect(replacer.getReviver()).toBeUndefined();
+                expect(replacer.toString()).toBeUndefined();
             });
             test('Parse', async () => {
                 const json = JSON.stringify(data);
@@ -420,4 +421,27 @@ describe('Parse/stringify with core JSON types', () => {
         });
     });
 
+    describe('Clone', () => {
+        test('{d: Date}', async () => {
+            const replacer = Jsonizer.replacer<{ d: Date }>();
+            const now = { d: new Date() };
+            const json = JSON.stringify(now, replacer, 4);
+            const reviver = replacer.getReviver();
+            const clone = JSON.parse(json, reviver);
+            expect(clone).not.toBe(now);
+            expect(clone.d).not.toBe(now.d);
+            expect(clone.d).toBeInstanceOf(Date);
+            expect(clone.d.getTime()).toBe(now.d.getTime());
+        });
+        test('{n: 42}', async () => {
+            const replacer = Jsonizer.replacer<{ n: number }>();
+            const data = { n: 42 };
+            const json = JSON.stringify(data, replacer, 4);
+            const reviver = replacer.getReviver();
+            const clone = JSON.parse(json, reviver);
+            expect(clone).not.toBe(data);
+            expect(typeof clone.n).toBe('number');
+            expect(clone.n).toBe(data.n);
+        });
+    });
 });
