@@ -931,9 +931,6 @@ namespace internal {
                         anyMapper = mapper as Mappers<any>;
                     } else if (key === Self) {
                         // apply '.' builder after the members
-//                        if (mapper instanceof Reviver) {
-//                            mapper = mapper[Mappers$] as any;
-//                        }
                         if (typeof mapper === 'string') {
                             // mapper is a qualified name
                             mapper = Namespace.getClass(mapper);
@@ -1051,13 +1048,10 @@ namespace internal {
     export function toJSON(mappers: Mappers<Reviver, any> | Reviver.Reference, recurse = true): any {
         return Object.fromEntries(
             Object.entries(mappers ?? {})
-                // omit     {'.' : () => new ...}
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 .filter(([key, mapper]) =>
                     typeof mapper === 'string'
-                    // eslint-disable-next-line no-sparse-arrays
-                    || (/*key === ((mappers as any)[Mappers.Jokers.$] ?? [,'.'])[1]
-                        && */typeof mapper === 'function' &&
+                    || (typeof mapper === 'function' &&
                             // a reviver       |   @Reviver class
                             (mapper[Mappers$] || ReviverAPI.get(mapper))
                         )
@@ -1126,16 +1120,12 @@ namespace internal {
         }
 
         isEmpty(): boolean {
-            this.checkEnd();
-            return this.stack.length === 0
-                || Object.keys(this.stack[0].mapper).length === 0;
-        }
-
-        private checkEnd() {
             if (! this.end) {
                 const Err = Errors.getClass('Illegal Access', true);
                 throw new Err('This instance of replacer wasn\'t yet used in JSON.stringify()');
             }
+            return this.stack.length === 0
+                || Object.keys(this.stack[0].mapper).length === 0;
         }
 
         static getReviverClass(value: any): string | undefined {
@@ -1153,8 +1143,8 @@ namespace internal {
          * The top of the stack has to be an object.
          */
         private setMapper(current: Replacer.Context, key: string | number, reviver: string | undefined, value: any): void {
-            if (! reviver/*isPrimitive(value)*/) {
-                // capture primitives in a Set
+            if (! reviver) {
+                // capture unmapped keys in a Set (the more often a primitive)
                 (current.mapper as any)[Replacer.UNMAPPED_KEYS]!.add(String(key));
             }
             if (reviver) {
@@ -1225,8 +1215,6 @@ namespace internal {
         // we don't have the original value, that might have been transformed => so we have to set it for each step before entering it
         // each item belongs to some context that has a size that the item decrements
         // when the size is 0, we can pop() the stack, and retest the new context size on top of the stack
-        // when a new context is push() in the stack, its size is left unkown, and will be computed by its first child, in order to prevent premature unstacking
-        // this is because the context is pushed by the parent for its children before being transformed
 
         /**
          * The actual 'replacer' function that will be invoked while
@@ -1245,7 +1233,6 @@ namespace internal {
                     ? value
                     : before[Jsonizer.toJSON]?.()
                         ?? value; // else unchanged, it is the result of toJSON()
-                context.after[key] = after; // save the final value
 
                 const [size, isArray] = Array.isArray(after)
                     ? [after.length, true]
@@ -1278,7 +1265,6 @@ namespace internal {
                         size,
                         isArray,
                         before: after, // after is the collection that contains items before being transformed
-                        after: {},
                         mapper,
                         key,
                         count: 0,
@@ -1288,8 +1274,6 @@ namespace internal {
                 // function: left as-is
                 // will be set to null in [] or undefined and discarded in {}
                 return after;
-            } catch (r) {
-//                console.log(r);
             } finally {
                 context.size--; // consume
                 this.unStack();
@@ -1317,7 +1301,7 @@ namespace internal {
                                 const mapper = (top.mapper as any)[curr.key];
                                 function missings(key: string, mapperHas: any, mapperHasNot: any) {
                                     if (mapperHasNot[Replacer.UNMAPPED_KEYS]?.has(key)) {
-                                        // don't merge if the key MUST NOT be mapped (it is a primitive)
+                                        // don't merge if the key MUST NOT be mapped (the more often a primitive)
                                         return false;
                                     }
                                     // if some keys are missing, check wether they can be merge
@@ -1414,21 +1398,17 @@ namespace internal {
             mapper: Mappers<any>, // Mappers to revive the origValue,
             key: string | number, // current key
             before: any, // the value, before toJSON() call
-            after: any, // the value, after [Jsonizer.toJSON]() call
             size: number, // the remaining values (object entries or array items) that will be processed
                          // when 0 is reached : pop() from the stack
             count: number, // increment for each json entry
             // mapping keys[], in order:
             keys: Keys[], // applies to values transformed to array
-    //        from?: number,
-    //        to?: number,
-    //        last: Mappers<any>
         }
     
         // arrays can have their mappers optimized :
         // consecutive indices that have the same mappings are merged in a range
         export type Keys = {
-            key: string, // indice or range, as a string
+            key: string, // indice or range, as a string, e.g. '2-5'
             from: number, // indice
             to?: number   //   or range
         }
@@ -1483,7 +1463,6 @@ type ReviverAPI<Target> = Reviver<Target>;
                 size: 1,
                 isArray: false,
                 before: {'' : value }, // the root value before calling .toJSON() on it
-                after: {}, // will contain the root value after transformation
                 mapper: {},
                 key: '',
                 count: 0,

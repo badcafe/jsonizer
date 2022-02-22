@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+## 4.0.1
+
+* Remove unused code + minor refacto
+
 ## 4.0.0
 
 * Fix corner case issues of `Jsonizer.replacer()` when the target type is destructured to a different DTO.
