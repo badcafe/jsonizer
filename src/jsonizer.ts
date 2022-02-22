@@ -635,10 +635,6 @@ export namespace Jsonizer {
         // (key, value): any, just to have the signature of a replacer
         return value?.[Jsonizer.toJSON]?.() // may return null or undefined
             ?? value // else normal behaviour, potentially let go on with value.toJSON()
-// TODO :IMPORTANT : this doesn't work beause it runs
-//                              value?.[Jsonizer.toJSON]?.()
-//                  on value after .toJSON(), whereas is have to be run on value before calling .toJSON()
-// TODO => we must use a context in every case and don't use shortcuts
     }
 
     /**
