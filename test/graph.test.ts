@@ -94,8 +94,8 @@ describe('Graphs', () => {
                 birthDate: '1998-12-20T00:00:00.000Z',
                 hobbies: [ {name: 'cooking'}, {name: 'programming'} ]
             }
-            console.log(personJson)
-            console.log(JSON.parse(personJson))
+            // console.log(personJson)
+            // console.log(JSON.parse(personJson))
             expect(JSON.parse(personJson)).toEqual(expectedResult);
         });
     });

@@ -16,6 +16,8 @@ describe('Errors', () => {
             expect(errFromJson).toBeInstanceOf(Error);
             expect(errFromJson.name).toBe('Error');
             expect(errFromJson.message).toBe(msg);
+            expect(String(errFromJson)).toBe(String(err));
+            expect(JSON.stringify(errFromJson, Jsonizer.REPLACER)).toBe(jsonErr);
         });
         test('TypeError', async () => {
             const msg = 'Oops !';
@@ -31,6 +33,8 @@ describe('Errors', () => {
             expect(errFromJson).toBeInstanceOf(TypeError);
             expect(errFromJson.name).toBe('TypeError');
             expect(errFromJson.message).toBe(msg);
+            expect(String(errFromJson)).toBe(String(err));
+            expect(JSON.stringify(errFromJson, Jsonizer.REPLACER)).toBe(jsonErr);
         });
         test('MyError', async () => {
             // it is an unregistered error !
@@ -57,6 +61,8 @@ describe('Errors', () => {
             expect(errFromJson.name).toBe('Error'); // curiously, this is the instance name of custom errors
             expect(errFromJson.constructor.name).toBe('MyError');
             expect(errFromJson.message).toBe(msg);
+            expect(String(errFromJson)).toBe(String(err));
+            expect(JSON.stringify(errFromJson, Jsonizer.REPLACER)).toBe(jsonErr);
         });
         test('MyWarning', async () => {
             // it is an unregistered error !
@@ -86,6 +92,8 @@ describe('Errors', () => {
             expect(errFromJson.name).toBe('Error'); // curiously, this is the instance name of custom errors
             expect(errFromJson.constructor.name).toBe('MyWarning');
             expect(errFromJson.message).toBe(msg);
+            expect(String(errFromJson)).toBe(String(err));
+            expect(JSON.stringify(errFromJson, Jsonizer.REPLACER)).toBe(jsonErr);
         });
 
         test('503 Service Unavailable', async () => {
@@ -118,6 +126,8 @@ describe('Errors', () => {
             expect(Errors.getName(errFromJson)).toBe('Service Unavailable');
             expect(errFromJson.message).toBe(msg);
             expect(Errors.getCode(errFromJson)).toBe(503);
+            expect(String(errFromJson)).toBe(String(err));
+            expect(JSON.stringify(errFromJson, Jsonizer.REPLACER)).toBe(jsonErr);
         });
 
         test('null', () => {
