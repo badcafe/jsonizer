@@ -221,6 +221,24 @@ export namespace Namespace {
      * @throws `Missing Name` error when the class is not found in the registry.
      */
     export function getClass<T>(qname: string): Class<T> {
+        const cl = hasClass<T>(qname);
+        if (cl) {
+            return cl;
+        } else {
+            const Err = Errors.getClass('Missing Name', true, 404);
+            throw new Err(`"${qname}" not found in registry`);
+        }
+    }
+
+    /**
+     * Lookup for a class by name
+     * 
+     * @param qname The qualified name of the class.
+     * @returns The class bound to that name.
+     * @throws `Name Conflict` error when several classes are found :
+     *      can be fix by setting 2 different namespaces to the classes.
+     */
+    export function hasClass<T>(qname: string): Class<T> | undefined {
         const cl = registry.get(qname);
         // we don't rise errors on registration but on invokation,
         // because one must let the user rearrange its namespaces as wanted
@@ -234,9 +252,6 @@ export namespace Namespace {
         } else if (qname.endsWith('Error')) {
             // custom errors might not be registered, go with it
             return Error as any;
-        } else {
-            const Err = Errors.getClass('Missing Name', true, 404);
-            throw new Err(`"${qname}" not found in registry`);
         }
     }
 
