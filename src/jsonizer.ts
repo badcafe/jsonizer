@@ -309,6 +309,193 @@ export namespace Mappers {
                     // make fail '', 'abc', '0', '1', 'a-b', '0-a', 1-2-3', '-1-2', '0-0', '3-3', etc            
         }
     }
+
+    /**
+     * Optimizable array mappers.
+     */
+    export type Optimizable = {
+        /**
+         * Array mappers
+         */
+        mapper: Mappers<any>,
+        /**
+         * Increment for each json entry, this might be slightly different from
+         * mapper keys since some keys might be merged.
+         */
+        count: number,
+        /**
+         * mapping keys[], in order
+         */
+        keys: Optimizable.Keys[], // applies to values transformed to array
+    }
+
+    /**
+     * Optimizable mappers.
+     * 
+     * > For advanced usage.
+     */
+     export namespace Optimizable {
+        /**
+         * Arrays can have their mappers optimized : consecutive indices
+         * that have the same mappings are merged in a range
+         */
+        export type Keys = {
+            /** indice or range, as a string, e.g. '2-5' */
+            key: string,
+            /** indice */
+            from: number,
+            /** or range */
+            to?: number
+        }
+
+        /**
+         * Indicates whether a candidate key to add to an array mapper can be merge in a range.
+         * This is a "surface" optimization, since the candidate value is compared to the mapper
+         * value by identity.
+         * 
+         * @param keys The known keys of the array mapper
+         * @param mapper The array mapper
+         * @param value The value to compare (mapper value) by object identity
+         * @param keyIndex The key to check
+         * @returns A tuple of `[key, inRange]`:
+         * * `key` is the key (that can be a range) to set to the mapper
+         * * `inRange` indicates that the new entry was merged in an existing range
+         */
+        export function keyInRange(keys: Keys[], mapper: Mappers<any>, value: any, keyIndex: number): [string, boolean] {
+            let key = String(keyIndex);
+            // store keys as range when possible
+            if (keys.length === 0) {
+                keys.push({
+                    from: keyIndex,
+                    key
+                });
+            } else {
+                const last = keys[keys.length -1];
+                const previousKey = last.key; // might be a range
+                // optimization can be made as one goes along
+                // only with Reviver classes
+                // for other cases, see unstack() below
+                if (Math.max(last.from, last.to ?? 0) + 1 === keyIndex // adjacent only
+                    && (mapper as any)[previousKey] === value
+                ) {
+                    delete (mapper as any)[previousKey]; // replace previous mapping
+                    // expand to range
+                    last.to = keyIndex; // updated in keys
+                    key = last.key = `${String(last.from)}-${String(last.to)}`
+                    // mapper[key] = qname; // new key
+                    return [key, true]; // counted in the range
+                } else {
+                    keys.push({
+                        from: keyIndex,
+                        key
+                    });
+                }
+            }
+            return [key, false];
+        }
+
+        /**
+         * Merge adjacent ranges of an array mappers when possible.
+         * This is a "deep" optimization, since the candidate value is compared structurally
+         * to the mapper value.
+         * 
+         * @param mappers An array mappers
+         */
+        export function optimizeRanges(mappers: Mappers.Optimizable) {
+            // optimizations on qname made on setMapper(), see above
+            let maybeTuple = true; // arbitrary heuristic
+            if (mappers.keys.length > 1) {
+                // check consecutive mappings
+                // the following optimization is for combined mappings
+                // that are known on unstacking
+                mappers.keys = mappers.keys.reduce<Mappers.Optimizable.Keys[]>((prev, curr) => {
+                    if (curr.to) {
+                        maybeTuple = false; // a range is not a tuple
+                    }
+                    // can we compare with the previous ?
+                    if (prev.length > 0) {
+                        const other = prev[prev.length -1];
+                        const mapper = (mappers.mapper as any)[curr.key];
+                        function missings(key: string, mapperHas: any, mapperHasNot: any) {
+                            if (mapperHasNot[internal.Replacer.UNMAPPED_KEYS]?.has(key)) {
+                                // don't merge if the key MUST NOT be mapped (the more often a primitive)
+                                return false;
+                            }
+                            // if some keys are missing, check wether they can be merge
+                            const submapper = Mappers.Matcher.getMatchingMapper(mapperHasNot, Number(key)) // range match
+                                ?? mapperHasNot['*'] // any match (if defined)
+                            if (submapper) {
+                                if (deepEquals(mapperHas[key], submapper, missings)) {
+                                    mapperHasNot[key] = submapper; // patch
+                                    return true;
+                                } else {
+                                    return false;
+                                }
+                            } else {
+                                mapperHasNot[key] = mapperHas[key]; // patch
+                                return true;
+                            }
+                        }
+                        if (Math.max(other.from, other.to ?? 0) + 1 === curr.from // adjacent only
+                            // check combined mappings equality
+                            && deepEquals(mapper, (mappers.mapper as any)[other.key], missings)
+                        ) {
+                            // merge unmapped keys
+                            for (const k of (mappers.mapper as any)[curr.key][internal.Replacer.UNMAPPED_KEYS]) {
+                                mapper[internal.Replacer.UNMAPPED_KEYS].add(k);
+                            }
+                            // old mappers
+                            delete (mappers.mapper as any)[curr.key];
+                            delete (mappers.mapper as any)[other.key];
+                            // adjust
+                            mappers.count--;
+                            // merge
+                            other.to = curr.to ?? curr.from;
+                            other.key = `${other.from}-${other.to}`;
+                            // new mapper
+                            (mappers.mapper as any)[other.key] = mapper;
+                            maybeTuple = false;
+                        } else {
+                            prev.push(curr); // unchanged
+                        }
+                    } else {
+                        prev.push(curr); // first item
+                    }
+                    return prev;
+                }, []);
+                // current.keys are up to date
+            }
+            // the last is (almost) always the 'Any' key
+            if (mappers.keys.length > 0
+                // no holes in the sequence (otherwise, some keys ARE NOT mapped)
+                && mappers.keys.length === mappers.count
+                // keep tuples as-is, for (arbitrary) convenience
+                // (tuples are assumed to have more than one items without 2 equals consecutive items)
+                && (mappers.keys.length === 1 || ! maybeTuple)
+            ) {
+                const lastKey = mappers.keys[mappers.keys.length -1].key;
+                (mappers.mapper as any)['*'] = (mappers.mapper as any)[lastKey];
+                delete (mappers.mapper as any)[lastKey];
+            }
+        }
+
+        /**
+         * Prune empty mappings.
+         * 
+         * @param mappers The mappers to clear.
+         */
+        export function pruneEmptyMappings(mappers: Mappers<any>) {
+            for (const key in mappers) {
+                const sub = (mappers as any)[key];
+                if (typeof sub === 'boolean'
+                    || (typeof sub === 'object' && Object.keys(sub).length === 0)
+                ) {
+                    delete (mappers as any)[key];
+                }
+            }
+        }
+        
+    }
 }
 
 /**
@@ -376,18 +563,29 @@ export interface Replacer<Type = any> {
     (this: any, key: string, value: any): any
 
     /**
+     * Indicates if some mappings were collected.
+     */
+    isEmpty(): boolean
+
+    /**
      * Get the revivers collected after `JSON.stringify()` when used with
      * this `Replacer` (can lead to an empty replacer), or `null` if
      * the valued stringified was a primitive.
-     * 
+     *
      * @paramType Target The target of the reviver
      */
     getReviver<Target = Type>(): Reviver<Target>
 
     /**
-     * Indicates if some mappings were collected.
+     * Get the mappers collected after `JSON.stringify()` when used with
+     * this `Replacer` (can lead to an empty replacer), or `null` if
+     * the valued stringified was a primitive.
+     *
+     * @paramType Target The target of the reviver
+     * 
+     * @see [[getReviver]]
      */
-    isEmpty(): boolean
+    getMappers<Target>(): Mappers<Target> | null;
 
     /**
      * The JSON string representation of this replacer, after being used
@@ -1115,6 +1313,12 @@ namespace internal {
                 : Jsonizer.reviver<Target>(this.stack[0].mapper as Mappers<Target>);
         }
 
+        getMappers<Target>(): Mappers<Target> | null {
+            return this.isEmpty()
+                ? null
+                : this.stack[0].mapper as Mappers<Target>;
+        }
+
         isEmpty(): boolean {
             if (! this.end) {
                 const Err = Errors.getClass('Illegal Access', true);
@@ -1145,34 +1349,10 @@ namespace internal {
             }
             if (reviver) {
                 if (current.isArray) { // array mappings optimization
-                    current.count++;
-                    // store keys as range when possible
-                    if (current.keys.length === 0) {
-                        current.keys.push({
-                            from: key as number,
-                            key: key = String(key)
-                        });
-                    } else {
-                        const last = current.keys[current.keys.length -1];
-                        const previousKey = last.key; // might be a range
-                        // optimization can be made as one goes along
-                        // only with Reviver classes
-                        // for other cases, see unstack() below
-                        if (Math.max(last.from, last.to ?? 0) + 1 === key // adjacent only
-                            && (current.mapper as any)[previousKey] === reviver
-                        ) {
-                            delete (current.mapper as any)[previousKey]; // replace previous mapping
-                            // expand to range
-                            last.to = key as number; // updated in current.keys
-                            key = last.key = `${String(last.from)}-${String(last.to)}`
-                            // current.mapper[key] = qname; // new key
-                            current.count--; // counted in the range
-                        } else {
-                            current.keys.push({
-                                from: key as number,
-                                key: key = String(key)
-                            });
-                        }
+                    let inRange: boolean;
+                    [key, inRange] = Mappers.Optimizable.keyInRange(current.keys, current.mapper, reviver, key as number);
+                    if (! inRange) {
+                        current.count++; // not counted in the range
                     }
                 }
                 (current.mapper as any)[key] = reviver;
@@ -1281,91 +1461,10 @@ namespace internal {
             const top = this.stack[this.stack.length -1];
             if (top.size === 0) {
                 if (top.isArray) { // array mappings optimization
-                    // optimizations on qname made on setMapper(), see above
-                    let maybeTuple = true; // arbitrary heuristic
-                    if (top.keys.length > 1) {
-                        // check consecutive mappings
-                        // the following optimization is for combined mappings
-                        // that are known on unstacking
-                        top.keys = top.keys.reduce<Replacer.Keys[]>((prev, curr) => {
-                            if (curr.to) {
-                                maybeTuple = false; // a range is not a tuple
-                            }
-                            // can we compare with the previous ?
-                            if (prev.length > 0) {
-                                const other = prev[prev.length -1];
-                                const mapper = (top.mapper as any)[curr.key];
-                                function missings(key: string, mapperHas: any, mapperHasNot: any) {
-                                    if (mapperHasNot[Replacer.UNMAPPED_KEYS]?.has(key)) {
-                                        // don't merge if the key MUST NOT be mapped (the more often a primitive)
-                                        return false;
-                                    }
-                                    // if some keys are missing, check wether they can be merge
-                                    const submapper = Mappers.Matcher.getMatchingMapper(mapperHasNot, Number(key)) // range match
-                                        ?? mapperHasNot['*'] // any match (if defined)
-                                    if (submapper) {
-                                        if (deepEquals(mapperHas[key], submapper, missings)) {
-                                            mapperHasNot[key] = submapper; // patch
-                                            return true;
-                                        } else {
-                                            return false;
-                                        }
-                                    } else {
-                                        mapperHasNot[key] = mapperHas[key]; // patch
-                                        return true;
-                                    }
-                                }
-                                if (Math.max(other.from, other.to ?? 0) + 1 === curr.from // adjacent only
-                                    // check combined mappings equality
-                                    && deepEquals(mapper, (top.mapper as any)[other.key], missings)
-                                ) {
-                                    // merge unmapped keys
-                                    for (const k of (top.mapper as any)[curr.key][Replacer.UNMAPPED_KEYS]) {
-                                        mapper[Replacer.UNMAPPED_KEYS].add(k);
-                                    }
-                                    // old mappers
-                                    delete (top.mapper as any)[curr.key];
-                                    delete (top.mapper as any)[other.key];
-                                    // adjust
-                                    top.count--;
-                                    // merge
-                                    other.to = curr.to ?? curr.from;
-                                    other.key = `${other.from}-${other.to}`;
-                                    // new mapper
-                                    (top.mapper as any)[other.key] = mapper;
-                                    maybeTuple = false;
-                                } else {
-                                    prev.push(curr); // unchanged
-                                }
-                            } else {
-                                prev.push(curr); // first item
-                            }
-                            return prev;
-                        }, []);
-                        // current.keys are up to date
-                    }
-                    // the last is (almost) always the 'Any' key
-                    if (top.keys.length > 0
-                        // no holes in the sequence (otherwise, some keys ARE NOT mapped)
-                        && top.keys.length === top.count
-                        // keep tuples as-is, for (arbitrary) convenience
-                        // (tuples are assumed to have more than one items without 2 equals consecutive items)
-                        && (top.keys.length === 1 || ! maybeTuple)
-                    ) {
-                        const lastKey = top.keys[top.keys.length -1].key;
-                        (top.mapper as any)['*'] = (top.mapper as any)[lastKey];
-                        delete (top.mapper as any)[lastKey];
-                    }
+                    Mappers.Optimizable.optimizeRanges(top);
                 }
                 // final cleanup: prune empty mappings
-                for (const key in top.mapper) {
-                    const sub = (top.mapper as any)[key];
-                    if (typeof sub === 'boolean'
-                        || (typeof sub === 'object' && Object.keys(sub).length === 0)
-                    ) {
-                        delete (top.mapper as any)[key];
-                    }
-                }
+                Mappers.Optimizable.pruneEmptyMappings(top.mapper);
                 if (this.stack.length > 1) {
                     this.stack.pop(); // effective unstack
                     // is there more things to unstack ???
@@ -1388,27 +1487,15 @@ namespace internal {
         export const UNMAPPED_KEYS = Symbol.for(`${namespace}.UnmappedKeys`); // used to collect keys that are not mapped
 
         // recompose the Stack for replacer()
-        export type Context = {
-            isArray: boolean | undefined, // this is not "value is array", but "transformed value is array"
+        export type Context = Mappers.Optimizable & {
             parent?: Context,
-            mapper: Mappers<any>, // Mappers to revive the origValue,
+            isArray: boolean | undefined, // this is not "value is array", but "transformed value is array"
+            size: number, // the remaining values (object entries or array items) that will be processed
+            // when 0 is reached : pop() from the stack
             key: string | number, // current key
             before: any, // the value, before toJSON() call
-            size: number, // the remaining values (object entries or array items) that will be processed
-                         // when 0 is reached : pop() from the stack
-            count: number, // increment for each json entry
-            // mapping keys[], in order:
-            keys: Keys[], // applies to values transformed to array
         }
-    
-        // arrays can have their mappers optimized :
-        // consecutive indices that have the same mappings are merged in a range
-        export type Keys = {
-            key: string, // indice or range, as a string, e.g. '2-5'
-            from: number, // indice
-            to?: number   //   or range
-        }
-    
+
     }
 }
 
