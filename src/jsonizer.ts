@@ -377,7 +377,7 @@ export interface Replacer<Type = any> {
 
     /**
      * Get the revivers collected after `JSON.stringify()` when used with
-     * this `Replacer` (can lead to an empty replacer), or undefined if
+     * this `Replacer` (can lead to an empty replacer), or `null` if
      * the valued stringified was a primitive.
      * 
      * @paramType Target The target of the reviver
@@ -481,7 +481,7 @@ export namespace Reviver {
      * @param value A reviver structure.
      * @returns A reviver instance.
      */
-    export function revive<Target>(value: Mappers<internal.Reviver>): Reviver<Target> {
+    export function revive<Target>(value: Mappers<internal.Reviver> | null): Reviver<Target> {
         return new internal.Reviver(value) as any;
         // same as :
         // const reviver = get<internal.Reviver>();
@@ -746,9 +746,9 @@ namespace internal {
         [Clazz]?: Class<any>
         // ! above properties are keyed with Symbols
 
-        constructor(mappers: Mappers<Reviver, any>, clazz?: Class<any>) {
+        constructor(mappers: Mappers<Reviver, any> | null, clazz?: Class<any>) {
             super();
-            this[Mappers$] = mappers;
+            this[Mappers$] = mappers ?? {};
             this[Clazz] = clazz;
             // we have a wrapper around internal.Reviver
             // because this instance also has to be a function
@@ -1109,9 +1109,9 @@ namespace internal {
             });
         }
 
-        getReviver<Target>(): ReviverAPI<Target> | undefined {
+        getReviver<Target>(): ReviverAPI<Target> | null {
             return this.isEmpty()
-                ? undefined
+                ? null
                 : Jsonizer.reviver<Target>(this.stack[0].mapper as Mappers<Target>);
         }
 
@@ -1377,7 +1377,7 @@ namespace internal {
         toString(): string {
             return (
                 this.isEmpty()
-                    ? undefined
+                    ? null
                     : this.stack[0].mapper
                         && JSON.stringify(internal.toJSON(this.stack[0].mapper))
             )!;
