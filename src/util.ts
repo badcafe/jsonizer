@@ -2,7 +2,8 @@
  * Indicates whether any value is a primitive or not.
  */
 export function isPrimitive(value: any): boolean {
-    return value === null || value === true || value === false || typeof value === 'string' || typeof value === 'number';
+    // undefine is also tested because it is a value that can be found in an array
+    return value === null || value === undefined || value === true || value === false || typeof value === 'string' || typeof value === 'number';
 }
 
 /**

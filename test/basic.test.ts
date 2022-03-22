@@ -311,8 +311,8 @@ describe('Parse/stringify with core JSON types', () => {
                 const replacer = Jsonizer.replacer();
                 const json = JSON.stringify(data, replacer, 4);
                 expect(json).toEqual(jData);
-                expect(replacer.getReviver()).toBeUndefined();
-                expect(replacer.toString()).toBeUndefined();
+                expect(replacer.getReviver()).toBeNull();
+                expect(replacer.toString()).toBeNull();
             });
             test('Parse', async () => {
                 const json = JSON.stringify(data);
@@ -342,8 +342,8 @@ describe('Parse/stringify with core JSON types', () => {
                 const replacer = Jsonizer.replacer();
                 const json = JSON.stringify(data, replacer, 4);
                 expect(json).toEqual(jData);
-                expect(replacer.getReviver()).toBeUndefined();
-                expect(replacer.toString()).toBeUndefined();
+                expect(replacer.getReviver()).toBeNull();
+                expect(replacer.toString()).toBeNull();
             });
             test('Parse', async () => {
                 const json = JSON.stringify(data);
@@ -370,8 +370,8 @@ describe('Parse/stringify with core JSON types', () => {
             const replacer = Jsonizer.replacer();
             const json = JSON.stringify(data, replacer, 4);
             expect(json).toEqual(jData);
-            expect(replacer.getReviver()).toBeUndefined();
-            expect(replacer.toString()).toBeUndefined();
+            expect(replacer.getReviver()).toBeNull();
+            expect(replacer.toString()).toBeNull();
         });
     });
 
@@ -443,5 +443,31 @@ describe('Parse/stringify with core JSON types', () => {
             expect(typeof clone.n).toBe('number');
             expect(clone.n).toBe(data.n);
         });
+    });
+});
+
+describe('Corner cases', () => {
+    test('`null` Reviver', async () => {
+        const reviver = Reviver.revive(null);
+        expect(JSON.stringify(reviver)).toBe('{}');
+    });
+    test('Stringify `[undefined, undefined]`', async () => {
+        // invariant
+        let json = JSON.stringify([undefined, undefined]);
+        expect(json).toBe('[null,null]');
+
+        const replacer = Jsonizer.replacer();
+        json = JSON.stringify([undefined, undefined], replacer);
+        expect(json).toBe('[null,null]');
+    });
+    test('Nested `[[[Date]]]`', async () => {
+        const data = [[[new Date('2022-03-16')]]];
+        let json = JSON.stringify(data);
+        expect(json).toBe('[[[\"2022-03-16T00:00:00.000Z\"]]]');
+
+        const replacer = Jsonizer.replacer();
+        json = JSON.stringify(data, replacer);
+        expect(json).toBe('[[[\"2022-03-16T00:00:00.000Z\"]]]');
+        expect(replacer.toString()).toEqual('{"*":{"*":{"*":"Date"}}}');
     });
 });
