@@ -1,3 +1,8 @@
+/**
+ * Base
+ * 
+ * @module
+ */
 import type { Errors as Err } from "./errors";
 
 /** The Jsonizer namespace is `npm:@badcafe/jsonizer` */
@@ -15,6 +20,9 @@ export const Errors: typeof Err = {} as any;
  */
 export type Class<Type = any, Args extends any[] = any[]> = Class.Concrete<Type, Args> | Class.Abstract<Type>
 
+/**
+ * Abstract and Concrete classes.
+ */
 export namespace Class {
 
     /**
