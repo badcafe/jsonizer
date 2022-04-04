@@ -1,5 +1,14 @@
 # Jsonizer Changelog
 
+## 6.0.0
+
+* Fix bug in replacer with `undefined` values in an array.
+* Change logo to support Ukraine
+* Add method `Namespace.hasClass(qname)`
+* Add method `Replacer.getMappers()`
+* Expose optimization algorithms to public API
+* **Breaking change** : Now if the captured reviver is empty, its string representation returns `null` instead of `undefined`, which can be turned to JSON and restored from JSON safely.
+
 ## 5.0.0
 
 * Remove unused code + minor refacto
