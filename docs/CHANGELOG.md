@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+## 6.0.1
+
+* Fix packaging.
+
 ## 6.0.0
 
 * Fix bug in replacer with `undefined` values in an array.
