@@ -296,7 +296,7 @@ export namespace Mappers {
          * 
          * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=ranges)
          */
-         export function isRange(key: string, delim = '-'): boolean {
+        export function isRange(key: string, delim = '-'): boolean {
             return ! isNaN(key.split(delim) // '8-12' => ['8', '12']
                 .map(int => Number.parseInt(int)) // => [8, 12]
                 .reduce<number>(
@@ -334,7 +334,7 @@ export namespace Mappers {
      * 
      * > For advanced usage.
      */
-     export namespace Optimizable {
+    export namespace Optimizable {
         /**
          * Arrays can have their mappers optimized : consecutive indices
          * that have the same mappings are merged in a range
@@ -667,7 +667,7 @@ export namespace Reviver {
      * 
      * @param target The target class, by default will get the reviver's Reviver.
      */
-     export function get<T = Reviver>(target: Class<T> = internal.Reviver as any): Reviver<T> {
+    export function get<T = Reviver>(target: Class<T> = internal.Reviver as any): Reviver<T> {
         return Reflect.getMetadata($, target);
     }
 
@@ -1520,7 +1520,7 @@ type ReviverAPI<Target> = Reviver<Target>;
  * This function is just a wrapper around `JSON.stringify()`
  * used to handle properly the root element.
  */
- export function stringify(
+export function stringify(
     // stringify(value: any, replacer?: (this: any, key: string, value: any) => any, space?: string | number): string;
     // stringify(value: any, replacer?: (number | string)[] | null, space?: string | number): string;
     value: any,
