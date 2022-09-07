@@ -1,4 +1,4 @@
-import { Jsonizer, Mappers, Reviver } from "../src";
+import { Jsonizer, Mappers } from "../src";
 
 describe('Advanced Jsonizer types', () => {
     describe('Code', () => {
@@ -66,9 +66,9 @@ describe('Advanced Jsonizer types', () => {
                 [Mappers.Jokers.$]: ['**', 'this', '~']
             }
 
-            const mapper: Mappers<any> = JSON.parse('');
+            const mapper: Mappers<any> = JSON.parse('{}');
             const rev = Jsonizer.reviver(mapper);
-            JSON.parse('', rev);
+            JSON.parse('""', rev);
         });
     });
 });
