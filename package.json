@@ -1,6 +1,6 @@
 {
   "name": "@badcafe/jsonizer",
-  "version": "6.0.1",
+  "version": "6.0.2",
   "description": "Easy nested instance reviving for JSON",
   "type": "module",
   "main": "dist/index.cjs",
@@ -15,6 +15,7 @@
   "scripts": {
     "test": "jest --runInBand --verbose",
     "test:watch": "jest --runInBand --watchAll",
+    "test:file": "jest --",
     "compile": "tsc -b",
     "postcompile": "rollup -c",
     "compile:test": "cd test ; tsc -b",
@@ -77,8 +78,8 @@
     "sloc": "^0.2.1",
     "ts-jest": "^26.4.4",
     "ts-node": "^10.4.0",
-    "typedoc": "^0.22.11",
-    "typescript": "^4.5.5"
+    "typedoc": "^0.22.17",
+    "typescript": "^4.7.4"
   },
   "dependencies": {
     "reflect-metadata": "^0.1.13"
