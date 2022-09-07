@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+## 6.0.2
+
+* Mappers definition enhancement for array indexes.
+
 ## 6.0.1
 
 * Fix packaging.

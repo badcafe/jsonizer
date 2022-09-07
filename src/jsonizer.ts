@@ -119,6 +119,17 @@ export type Mappers<
         [key in Self]?: ((this: any[], args: Source) => Target | any)
     } & (Source extends Array<infer Item>
         ? {
+            0? : Reviver.Reference | Mappers<Source[0]>
+            1? : Reviver.Reference | Mappers<Source[1]>
+            2? : Reviver.Reference | Mappers<Source[2]>
+            3? : Reviver.Reference | Mappers<Source[3]>
+            4? : Reviver.Reference | Mappers<Source[4]>
+            5? : Reviver.Reference | Mappers<Source[5]>
+            6? : Reviver.Reference | Mappers<Source[6]>
+            7? : Reviver.Reference | Mappers<Source[7]>
+            8? : Reviver.Reference | Mappers<Source[8]>
+            9? : Reviver.Reference | Mappers<Source[9]>
+          } & { // other indexes...
             [index : number]: Reviver.Reference | Mappers<Item>
           } & {
             [key in Mappers.Matcher.Range<Delim>]: Reviver.Reference | Mappers<Item>
