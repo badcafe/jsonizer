@@ -321,5 +321,26 @@ describe('Revivers generation', () => {
             expect(personsFromJson).toEqual(persons);
         });
     });
+    describe('Subrevivers', () => {
+        test('expect submapper of "Foo" to be {".": "Foo"}', () => {
+            @Reviver<Person_1>({
+                '.': ({name, birthDate}) => new Person_1(name, birthDate),
+                birthDate: Date
+            })
+            class Person_1 {
+                constructor(
+                    public name: string,
+                    public birthDate: Date
+                ) {}
+            }
 
+            const mapper = JSON.parse('{ "0": "Person_1" }', Reviver.get());
+            const sub = mapper[0];
+            const json = '{"id":123,"name":"Bob","birthDate":"1998-01-21"}';
+            const person = JSON.parse<Person_1>(json, sub);
+            expect(person).toBeInstanceOf(Person_1);
+            expect(person.birthDate).toBeInstanceOf(Date);
+            expect(person.birthDate.getFullYear()).toBe(1998);
+        })
+    });
 });

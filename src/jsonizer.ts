@@ -1001,7 +1001,12 @@ namespace internal {
                                     )
                                     ?? mappers[any] // any match (if defined)
                                         ?? {} // fallback
-                            return Jsonizer.reviver(submapper);
+                            return Jsonizer.reviver(
+                                typeof submapper === 'object'
+                                    ? submapper
+                                    // must be a Mappers object (submapper is 'Foo' or Foo)
+                                    : { '.': submapper } as Mappers<any>
+                            );
                         }
                     } else {
                         // preserve 'toJSON()' and [internal.Reviver.$]
