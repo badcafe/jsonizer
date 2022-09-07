@@ -102,7 +102,7 @@ Only the fields that are not basic javascript types (array, object, number, stri
 ### Jsonizer features
 
 * Jsonizer relies on standard `JSON.parse(text, reviver?)` and `JSON.stringify(value, replacer?, space?)` functions.
-* Jsonizer **reifies the hierachy missing** when using the `reviver` or `replacer` functions.
+* Jsonizer **reifies the hierachy missing** when using the `reviver` or `replacer` functions. Jsonizer's mappers are **structural** and **recursive** : values are not examined, mappers are applied on matching structure hierarchy.
 * Jsonizer's revivers can **augment the data** by performing the reverse operation of objects stringification with enough flexibility, so that classes are allowed to define their own `toJSON()` functions.
 * Jsonizer field mapping facilities include the joker `'*'` to match any field, as well as Regexp for objects keys and ranges for arrays items.
 * Jsonizer is **not intrusive** : you can define mappers for your own classes as well as for third-party classes.
@@ -114,7 +114,7 @@ Only the fields that are not basic javascript types (array, object, number, stri
 
 ## Revivers mappings
 
-In Jsonizer, a data structure can be **augmented** to typed data thanks to mappers. Mappers are plain objects that contain an entry for each field to augment.
+In Jsonizer, a data structure can be **augmented** to typed data thanks to mappers. **Mappers** are plain objects that contain an entry for each field to augment.
 
 ### Objects
 
