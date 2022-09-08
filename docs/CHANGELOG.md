@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+## 6.0.3
+
+* Bug fix: submapper gives Jsonizer.Self.Identity
+
 ## 6.0.2
 
 * Mappers definition enhancement for array indexes.
