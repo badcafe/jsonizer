@@ -342,5 +342,23 @@ describe('Revivers generation', () => {
             expect(person.birthDate).toBeInstanceOf(Date);
             expect(person.birthDate.getFullYear()).toBe(1998);
         })
+        test('submapper gives Jsonizer.Self.Identity', () => {
+            @Reviver<Person_2>({
+                '.': Jsonizer.Self.Identity,
+                birthDate: Date
+            })
+            abstract class $Person_2 {}
+            interface Person_2 {
+                name: string,
+                birthDate: Date
+            }
+
+            const mapper = JSON.parse('{ "0": "$Person_2" }', Reviver.get());
+            const sub = mapper[0];
+            const json = '{"id":123,"name":"Bob","birthDate":"1998-01-21"}';
+            const person = JSON.parse<Person_2>(json, sub);
+            expect(person.birthDate).toBeInstanceOf(Date);
+            expect(person.birthDate.getFullYear()).toBe(1998);
+        })
     });
 });

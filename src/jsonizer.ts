@@ -1151,11 +1151,16 @@ namespace internal {
                             const itSelf = classMapper?.[Mappers.Jokers.$]?.[1] ?? '.';
                             if (classMapper?.[itSelf]) {
                                 mapper = classMapper[itSelf]!;
-                                // we set it also to mappers because resolveMapper()
-                                // may attach some funMapper inside ; this doesn't
-                                // affect entries <- Object.entries(mappers) because
-                                // it's already done
-                                mappers = mapper as any;
+                                if (mapper === Jsonizer.Self.Identity) {
+                                    // prevent "Identity cannot be invoked without 'new'"
+                                    mapper = undefined as any;
+                                } else {
+                                    // we set it also to mappers because resolveMapper()
+                                    // may attach some funMapper inside ; this doesn't
+                                    // affect entries <- Object.entries(mappers) because
+                                    // it's already done
+                                    mappers = mapper as any;
+                                }
                             } else { // else it is assumed to be a builder
                                 classMapper = undefined; // it is not {'.': Foo} but {'.': () => new Foo()}
                             }
