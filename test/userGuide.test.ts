@@ -1,8 +1,8 @@
 import { Jsonizer, Reviver, Class, Mappers, Namespace, Errors } from "../src";
 
-import { Category as MovieCategory } from './readme.namespaces.jsonizer.movie';
-import { Product as Product2 } from './readme.namespaces.jsonizer.product';
-import { Person } from './readme.dto';
+import { Category as MovieCategory } from './userGuide.namespaces.jsonizer.movie';
+import { Product as Product2 } from './userGuide.namespaces.jsonizer.product';
+import { Person } from './userGuide.dto';
 
 // see README.md : all examples are here and tested
 
@@ -19,7 +19,7 @@ function verifyPerson<Person extends { birthDate?: Date }>(clazz: Class<Person>,
     expect(personFromJson.birthDate!.getFullYear()).toBe(year);
 }
 
-describe('README.md examples', () => {
+describe('USER_GUIDE.md examples', () => {
     describe('Overview', () => {
         const person = {
             name: 'Bob',
