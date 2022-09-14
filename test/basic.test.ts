@@ -1,4 +1,5 @@
 import { Jsonizer, Reviver, Namespace } from "../src";
+import { namespace } from "../src/base";
 
 type BufferDTO = ReturnType<typeof Buffer.prototype.toJSON>
 Reviver<Buffer, BufferDTO>({
@@ -471,3 +472,26 @@ describe('Corner cases', () => {
         expect(replacer.toString()).toEqual('{"*":{"*":{"*":"Date"}}}');
     });
 });
+
+describe('@Namespace gives a qualified name to classes', () => {
+    test('Chain', () => {
+        class Root {}
+
+        @Namespace (Root)
+        class Parent {}
+        @Namespace (Parent)
+        class Child {}
+        expect(Namespace.getQualifiedName(Child)).toBe('Root.Parent.Child');
+    });
+
+    test('Absolute', () => {
+        @Namespace ('org.example')
+        class Root {}
+
+        @Namespace (Root)
+        class Parent {}
+        @Namespace (Parent)
+        class Child {}
+        expect(Namespace.getQualifiedName(Child)).toBe('org.example.Root.Parent.Child');
+    });
+})
