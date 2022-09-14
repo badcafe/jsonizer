@@ -1,15 +1,20 @@
 # Jsonizer Changelog
 
-## 6.0.3
+### 6.0.4
+
+* Bug fix: prevent `undefined` being revived (typically on function arguments breakdown in independant parts)
+* `pruneEmptyMappings()` optimization : `{ foo: {'.': 'Foo' } }` becomes `{ foo: 'Foo' }` 
+
+### 6.0.3
 
 * Bug fix: submapper gives Jsonizer.Self.Identity
 
-## 6.0.2
+### 6.0.2
 
 * Mappers definition enhancement for array indexes.
 * Bug fix: expect submapper of `"Foo"` to be `{".": "Foo"}`
 
-## 6.0.1
+### 6.0.1
 
 * Fix packaging.
 
@@ -21,6 +26,8 @@
 * Add method `Replacer.getMappers()`
 * Expose optimization algorithms to public API
 * **Breaking change** : Now if the captured reviver is empty, its string representation returns `null` instead of `undefined`, which can be turned to JSON and restored from JSON safely.
+
+-----
 
 ## 5.0.0
 

@@ -498,14 +498,18 @@ export namespace Mappers {
         export function pruneEmptyMappings(mappers: Mappers<any>) {
             for (const key in mappers) {
                 const sub = (mappers as any)[key];
-                if (typeof sub === 'boolean'
-                    || (typeof sub === 'object' && Object.keys(sub).length === 0)
-                ) {
+                if (typeof sub === 'boolean') {
                     delete (mappers as any)[key];
+                } else if (typeof sub === 'object') {
+                    if (Object.keys(sub).length === 0) {
+                        delete (mappers as any)[key];
+                    } else if (Object.keys(sub).length === 1 && typeof sub['.'] === 'string') {
+                        // { foo: {'.': 'Foo' } } => { foo: 'Foo' }
+                        (mappers as any)[key] = sub['.'];
+                    }
                 }
             }
         }
-        
     }
 }
 
@@ -969,7 +973,9 @@ namespace internal {
                 apply(target, thisArg, argArray) {
                     if (argArray.length === 1) {
                         const [json] = argArray;
-                        return Reviver.revive<Reviver>([], json, target[Mappers$]);
+                        return json === undefined
+                            ? undefined
+                            : Reviver.revive<Reviver>([], json, target[Mappers$]);
                     } else {
                         const [key, value]: [string, any] = argArray as any;
                         // JSON.parse terminates with the root key ''
