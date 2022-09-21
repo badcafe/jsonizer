@@ -6,10 +6,10 @@ import pkg from './package.json';
 export default [{
 	input: 'src/index.ts',
 	output: [{
-		file: pkg.main,
+		file: pkg.exports['.'].require,
 		format: 'cjs'
 	}, {
-		file: pkg.module,
+		file: pkg.exports['.'].import,
 		format: 'es'
 	}],
 	plugins: [

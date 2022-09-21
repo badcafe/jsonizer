@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+## 7.0.0
+
+* Expose `mjs` (as the default) and `cjs` properly, to prevent `Attempted import error: 'Errors' is not exported from '@badcafe/jsonizer'` when module resolution result on importing `cjs` from a module (issue encountered in CRA v4).
+
 ### 6.0.4
 
 * Bug fix: prevent `undefined` being revived (typically on function arguments breakdown in independant parts)

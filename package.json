@@ -1,10 +1,15 @@
 {
   "name": "@badcafe/jsonizer",
-  "version": "6.0.4",
+  "version": "7.0.0",
   "description": "Structural reviving for JSON",
   "type": "module",
-  "main": "dist/index.cjs",
-  "module": "dist/index.esm.js",
+  "main": "dist/index.mjs",
+  "exports": {
+    ".": {
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.cjs"
+    }
+  },
   "files": [
     "dist",
     "src/*.ts",
