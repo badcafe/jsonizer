@@ -1019,6 +1019,15 @@ namespace internal {
                         return Reflect.get(target, prop, receiver);
                     }
                 },
+                // when setting a funMapper after resolution
+                set(target, prop, value, receiver) {
+                    if (typeof prop === 'number' || (typeof prop === 'string')) {
+                        return Reflect.get(target, Mappers$, receiver)[prop] = value;
+                    } else {
+                        // preserve [internal.Reviver.$]
+                        return false;
+                    }
+                },
                 ownKeys(target) {
                     const mappers = Reflect.get(target, Mappers$);
                     const ownKeys = new Set(Reflect.ownKeys(mappers));

@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 7.0.1
+
+* Bug fix: allow to update a resolved mapper in its parent mapper (in the browser)
+
 ## 7.0.0
 
 * Expose `mjs` (as the default) and `cjs` properly, to prevent `Attempted import error: 'Errors' is not exported from '@badcafe/jsonizer'` when module resolution result on importing `cjs` from a module (issue encountered in CRA v4).
