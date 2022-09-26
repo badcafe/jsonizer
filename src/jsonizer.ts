@@ -500,7 +500,7 @@ export namespace Mappers {
                 const sub = (mappers as any)[key];
                 if (typeof sub === 'boolean') {
                     delete (mappers as any)[key];
-                } else if (typeof sub === 'object') {
+                } else if (sub && typeof sub === 'object') {
                     if (Object.keys(sub).length === 0) {
                         delete (mappers as any)[key];
                     } else if (Object.keys(sub).length === 1 && typeof sub['.'] === 'string') {
@@ -1225,7 +1225,7 @@ namespace internal {
                             if (value !== undefined) {
                                 (json as any[])[i] = Reviver.revive(stack, value, mapper);
                             }
-                        } else if (typeof json === 'object') { // prevent unexpected mappings
+                        } else if (json && typeof json === 'object') { // prevent unexpected mappings
                             const value = (json as any)[key];
                             if (value !== undefined) {
                                 (json as any)[key] = Reviver.revive(stack, value, mapper);
@@ -1453,7 +1453,7 @@ namespace internal {
                         : [0]; // this is not a collection
                 let reviver;
                 // if there is a slot
-                if (typeof context.mapper === 'object') {
+                if (context.mapper && typeof context.mapper === 'object') {
                     // find the reviver for the original value if any, before it was transformed
                     reviver = Replacer.getReviverClass(before);
                     this.setMapper(
@@ -1468,7 +1468,7 @@ namespace internal {
                     );
                 } // else we don't need to capture more transformations
                 if (size > 0) { // don't push a new context for an empty object or array
-                    const mapper: any = reviver === undefined && typeof context.mapper === 'object'
+                    const mapper: any = reviver === undefined && context.mapper && typeof context.mapper === 'object'
                         ? context.parent === undefined // is root ?
                             ? context.mapper // recycle
                             : {} // collect submappers

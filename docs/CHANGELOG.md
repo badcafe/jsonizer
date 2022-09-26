@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 7.0.2
+
+* Bug fix: avoid a property of a mapper reading a value on `null`, protect other `typeof` being `null`
+
 ### 7.0.1
 
 * Bug fix: allow to update a resolved mapper in its parent mapper (in the browser)
