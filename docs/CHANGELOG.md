@@ -1,6 +1,6 @@
 # Jsonizer Changelog
 
-### 7.0.4
+### 7.0.5
 
 * Fix typed parameter in function signature
 
