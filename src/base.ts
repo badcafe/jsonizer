@@ -56,10 +56,9 @@ export namespace Class {
             ? fun
             : new Proxy(fun, {
                 get(target: any, prop: PropertyKey, receiver: any): any {
-                    const val = Reflect.get(target, prop, receiver);
                     return prop === 'name'
                         ? name
-                        : val
+                        : Reflect.get(target, prop, receiver);
                 }
             });
     }
