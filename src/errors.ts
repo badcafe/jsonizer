@@ -79,6 +79,7 @@ export namespace Errors {
                 }
             }
         }[name] as TypedError<Type> & HasCode;
+        Err = Class.rename(Err, name); // ensure webpack didn't cancel the naming effect
         if (code !== undefined) {
             Err[CODE] = code;
         }

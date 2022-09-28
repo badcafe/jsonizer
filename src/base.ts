@@ -35,9 +35,33 @@ export namespace Class {
     /**
      * Any abstract class.
      */
-     export type Abstract<Type = any> = {
+    export type Abstract<Type = any> = {
         name: string,
         prototype: Type
+    }
+
+    /**
+     * Set a name to a class or function, if necessary.
+     * 
+     * > Helpful after creating a class or function with a
+     * > dynamic name, some bundlers are somewhat destructive.
+     * 
+     * @param fun The actual class or function
+     * @param name The name to set
+     * @returns The class itself if it already has the expected name,
+     *      or a wrapper around with the relevant name.
+     */
+    export function rename(fun: Function, name: string) {
+        return fun.name === name
+            ? fun
+            : new Proxy(fun, {
+                get(target: any, prop: PropertyKey, receiver: any): any {
+                    const val = Reflect.get(target, prop, receiver);
+                    return prop === 'name'
+                        ? name
+                        : val
+                }
+            });
     }
 
 }

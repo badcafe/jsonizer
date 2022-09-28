@@ -1,5 +1,4 @@
 import { Jsonizer, Reviver, Namespace } from "../src";
-import { namespace } from "../src/base";
 
 type BufferDTO = ReturnType<typeof Buffer.prototype.toJSON>
 Reviver<Buffer, BufferDTO>({

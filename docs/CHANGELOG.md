@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 7.0.3
+
+* Fix webpack side effect : prevent cancelling the naming of dynamic class creation
+
 ### 7.0.2
 
 * Bug fix: avoid a property of a mapper reading a value on `null`, protect other `typeof` being `null`

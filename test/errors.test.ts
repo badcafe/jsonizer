@@ -1,4 +1,5 @@
-import { Errors, Jsonizer, Reviver } from "../src";
+import { Errors, Jsonizer, Reviver } from '../src';
+import { Class } from '../src/base';
 
 describe('Errors', () => {
     describe('reviving', () => {
@@ -133,6 +134,16 @@ describe('Errors', () => {
         test('null', () => {
             const errFromJson = JSON.parse('null', Reviver.get(Error));
             expect(errFromJson).toBeNull();
+        });
+    });
+
+    describe('naming', () => {
+        test('Class.rename() on existing class', async () => {
+            let TheError = Errors.getClass('TheError');
+            expect(TheError.name).toBe('TheError');
+            const e = new TheError();
+            TheError = Class.rename(TheError, 'The Error');
+            expect(TheError.name).toBe('The Error');
         });
     });
 
