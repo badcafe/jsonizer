@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 7.0.4
+
+* Fix typed parameter in function signature
+
 ### 7.0.3
 
 * Fix webpack side effect : prevent cancelling the naming of dynamic class creation

@@ -51,7 +51,7 @@ export namespace Class {
      * @returns The class itself if it already has the expected name,
      *      or a wrapper around with the relevant name.
      */
-    export function rename(fun: Function, name: string) {
+    export function rename<F extends Class | Function>(fun: F, name: string): F {
         return fun.name === name
             ? fun
             : new Proxy(fun, {

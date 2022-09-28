@@ -1,4 +1,5 @@
 import { Jsonizer, Mappers } from "../src";
+import { Class } from '../src/base';
 
 describe('Advanced Jsonizer types', () => {
     describe('Code', () => {
@@ -71,4 +72,20 @@ describe('Advanced Jsonizer types', () => {
             JSON.parse('""', rev);
         });
     });
+
+    describe('Class', () => {
+        test('Extend dynamic class', async () => {
+            const prop = 'That Class';
+            let ChildClass: Class.Concrete<{ toJSON?(value: any): any }>;
+            // do not merge with the next line : the browser doesn't set the name properly
+            ChildClass = ({
+                [prop]: class {}
+            })[prop];
+            ChildClass.prototype.toJSON = () => 42;
+            ChildClass = Class.rename(ChildClass, prop); // fix webpack side effect
+            expect(ChildClass.name).toBe('That Class');
+            expect(JSON.stringify(new ChildClass())).toBe('42');
+        });
+    });
+
 });
