@@ -857,6 +857,8 @@ export namespace Jsonizer {
 
         // see at the end the decorators
 
+        const IDENTITY = Symbol.for(`${namespace}.Self.Identity`);
+
         /**
          * A mapper class that keep unchanged a value ; this
          * is useful when the `'*'` (Any) key is used to map
@@ -873,12 +875,14 @@ export namespace Jsonizer {
          * 
          * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=pass-through-identity)
          */
-        export class Identity {
-            /** @ignore */
-            constructor() {
-                throw new TypeError('Creating an instance of Identity class is non sense')
-            }
-        }
+        export const Identity = (globalThis as any)[IDENTITY]
+            // makes the Identity class global, since the library might be loaded multiple times
+            ?? ((globalThis as any)[IDENTITY] = class Identity {
+                /** @ignore */
+                constructor() {
+                    throw new TypeError('Creating an instance of Identity class is non sense')
+                }
+        });
 
         /**
          * A mapping function for the `Self` key `'.'` that
@@ -918,7 +922,7 @@ export namespace Jsonizer {
          */
         export function assign<T>(clazz: Class.Concrete<T>): (args: object) => T {
             return (args: object) => {
-                const obj = new clazz();
+                const obj: any = new clazz();
                 Object.assign(obj, args);
                 return obj;
             }

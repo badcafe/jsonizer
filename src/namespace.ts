@@ -152,7 +152,10 @@ export function Namespace(ns: Class | string): (target: Class) => void {
     }
 }
 
-const registry = new Map<string, Class[]>();
+const REGISTRY = Symbol.for(`${namespace}.Namespace.Registry`);
+// makes the registry global, since the library might be loaded multiple times
+const registry: Map<string, Class[]> = (globalThis as any)[REGISTRY]
+    ?? ((globalThis as any)[REGISTRY] = new Map<string, Class[]>());
 
 function unregisterClass(target: Class) {
     const qn = Namespace.getQualifiedName(target)

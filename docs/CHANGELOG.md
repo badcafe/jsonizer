@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 7.0.6
+
+* Makes global objects global accross multiple library loads
+
 ### 7.0.5
 
 * Fix typed parameter in function signature
