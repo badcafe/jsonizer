@@ -349,7 +349,7 @@ export namespace Namespace {
         // 'a.b.C' => 'a.b' ; 'C' => ''
         const pkg = qn.split('.').slice(0, -1).join('.');
         if (pkg.length > 0) {
-            let parent = Namespace.hasClass(pkg);
+            const parent = Namespace.hasClass(pkg);
             if (parent) {
                 Namespace(parent)(target);
             } else {
