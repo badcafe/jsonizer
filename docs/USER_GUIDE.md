@@ -981,7 +981,7 @@ The more often, you don't have to take care of namespaces, but if you expose you
 
 Jsonizer use namespaces when revivers are sent aside the data to revive. A stringified reviver lost the class identity to which it belongs, that can be recover only thanks to namespaces.
 
-** Jsonizer will throw an error you when 2 revivers are bound to classes with the same qualified name.** Since during namespace settings some namespaces might overlap temporarily, such error can be thrown only at runtime. However, when you are sure that everything is wired up, you can check the integrity of the namespace registry :
+**Jsonizer will throw an error you when 2 revivers are bound to classes with the same qualified name.** Since during namespace settings some namespaces might overlap temporarily, such error can be thrown only at runtime. However, when you are sure that everything is wired up, you can check the integrity of the namespace registry :
 
 ```typescript
 Namespace.checkIntegrity();
