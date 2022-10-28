@@ -1,4 +1,4 @@
-import { Errors, Jsonizer, Reviver } from '../src';
+import { Errors, Jsonizer, Reviver, Namespace } from '../src';
 import { Class } from '../src/base';
 
 describe('Errors', () => {
@@ -47,15 +47,13 @@ describe('Errors', () => {
             err.description = 'This is my error';
             let jsonErr = JSON.stringify(err);
             expect(jsonErr).toBe(`{\"description\":\"This is my error\"}`);
-            let strErr = String(err);
-            expect(strErr).toBe(`Error: ${msg}`);
 
             const replacer = Jsonizer.replacer();
             jsonErr = JSON.stringify(err, replacer);
             expect(jsonErr).toBe(`"MyError: ${msg}"`);
-            expect(replacer.toString()).toBe('{".":"MyError"}');
+            expect(replacer.toString()).toBe('{".":"error.MyError"}');
 
-            const jsonReviver = '{".":"MyError"}'; // falls back to Error
+            const jsonReviver = '{".":"error.MyError"}'; // falls back to Error
             const reviver = JSON.parse(jsonReviver, Reviver.get<Reviver<Desc & Error>>());
             const errFromJson = JSON.parse(jsonErr, reviver);
             expect(errFromJson).toBeInstanceOf(Error);
@@ -67,7 +65,6 @@ describe('Errors', () => {
         });
         test('MyWarning', async () => {
             // it is an unregistered error !
-            // the class doesn't end with 'Error'
             type Desc = { description: string };
             class MyWarning extends Error implements Desc {
                 description = 'This is my warning';
@@ -84,7 +81,7 @@ describe('Errors', () => {
             const replacer = Jsonizer.replacer();
             jsonErr = JSON.stringify(err, replacer);
             expect(jsonErr).toBe(`"MyWarning: ${msg}"`);
-            expect(replacer.toString()).toBe('{".":"Error"}');
+            expect(replacer.toString()).toBe('{".":"error.MyWarning"}');
 
             const jsonReviver = '{".":"Error"}'; // falls back to Error
             const reviver = JSON.parse(jsonReviver, Reviver.get<Reviver<MyWarning>>());
@@ -116,7 +113,7 @@ describe('Errors', () => {
             const replacer = Jsonizer.replacer();
             jsonErr = JSON.stringify(err, replacer);
             expect(jsonErr).toBe(`"Service Unavailable: ${msg}"`);
-            expect(replacer.toString()).toBe('{".":"Error"}');
+            expect(replacer.toString()).toBe('{".":"error.Service Unavailable"}');
 
             const jsonReviver = '{".":"Error"}'; // falls back to Error
             const reviver = JSON.parse(jsonReviver, Reviver.get<Reviver<Desc & Error>>());
@@ -125,6 +122,7 @@ describe('Errors', () => {
             expect(errFromJson.name).toBe('Error'); // curiously, this is the instance name of custom errors
             expect(errFromJson.constructor.name).toBe('Service Unavailable');
             expect(Errors.getName(errFromJson)).toBe('Service Unavailable');
+            expect(Namespace.getQualifiedName(errFromJson.constructor)).toBe('error.Service Unavailable');
             expect(errFromJson.message).toBe(msg);
             expect(Errors.getCode(errFromJson)).toBe(503);
             expect(String(errFromJson)).toBe(String(err));
