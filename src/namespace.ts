@@ -80,7 +80,7 @@
  * @module
  */
 import 'reflect-metadata';
-import { namespace, Errors, Class } from './base'; // 'npm:@badcafe/jsonizer'
+import { namespace, Errors, Class, Ext, IS_STRING, CHILDREN, setNamespaceService } from './base'; // 'npm:@badcafe/jsonizer'
 
 /**
  * Decorator that defines the namespace of a class, and
@@ -140,22 +140,62 @@ import { namespace, Errors, Class } from './base'; // 'npm:@badcafe/jsonizer'
  * @see [[Namespace.getQualifiedName]]
  * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=namespaces)
  */
-export function Namespace(ns: Class | string): (target: Class) => void {
-    return (target: Class) => {
+export function Namespace(ns: Class & Ext | string): (target: Class) => void {
+    return (target: Class & Ext) => {
         // remove previous qname from registry
         unregisterClass(target);
+        unregisterTree(target);
+        if (typeof ns === 'string' && ns.length > 0) {
+            // org.example.Foo => create 3 classes in the hierarchy
+            // but a string class IS NOT the same as a regular class
+            // "Foo" must not be the class Foo
+            // this is why there is the flag to distinguish them
+            // Moreover, they can't be renamed (they are string based !)
+            ns = ns.split('.').reduce((parent, name) => {
+                let cl = registry.get(name)?.find(cl => cl[IS_STRING]);
+                if (! cl) {
+                    const clazz = {
+                        // the class will endorse the name of the property it is assigned to
+                        [ns as string]: class {}
+                    }[ns as string];
+                    cl = Class.rename(clazz, ns as string); // ensure the name is correct
+                    cl[IS_STRING] = true; // then locks the class name
+                }
+                if (parent) {
+                    parent[CHILDREN]?.push(cl)
+                        ?? (parent[CHILDREN] = [cl]);
+                }        
+                return cl!;
+            }, undefined as any as Class & Ext);
+        }
+        if (typeof ns !== 'string') {
+            ns[CHILDREN]?.push(target)
+                ?? (ns[CHILDREN] = [target]);
+        } // else ns is ''
         // new qname
         Reflect.defineMetadata(Namespace.$, ns, target);
         const qn = Namespace.getQualifiedName(target);
         // new entries in registry
-        registerClassByQualifiedName(qn, target);
+        registerClass(qn, target);
+        registerTree(target);
     }
 }
 
 const REGISTRY = Symbol.for(`${namespace}.Namespace.Registry`);
+
+// declare global {
+//     var [REGISTRY]: Map<string, (Class & HasChildren)[]>
+// }
 // makes the registry global, since the library might be loaded multiple times
-const registry: Map<string, Class[]> = (globalThis as any)[REGISTRY]
-    ?? ((globalThis as any)[REGISTRY] = new Map<string, Class[]>());
+const registry: Map<string, (Class & Ext)[]> = (globalThis as any)[REGISTRY]
+    ?? ((globalThis as any)[REGISTRY] = new Map());
+
+function unregisterTree(target: Class & Ext) {
+    for (const child of target[CHILDREN] ?? []) {
+        unregisterClass(child);
+        unregisterTree(child);
+    }
+}
 
 function unregisterClass(target: Class) {
     const qn = Namespace.getQualifiedName(target)
@@ -163,12 +203,24 @@ function unregisterClass(target: Class) {
     if (cl) {
         const i = cl.findIndex(o => o === target);
         if (i !== -1) {
-            cl.splice(i, 1); // done !
+            if (cl.length === 1) {
+                registry.delete(qn);
+            } else {
+                cl.splice(i, 1);
+            }
         }
+    } // else not a registered class
+}
+
+function registerTree(target: Class & Ext) {
+    for (const child of target[CHILDREN] ?? []) {
+        const qn = Namespace.getQualifiedName(child);
+        registerClass(qn, child);
+        registerTree(child);
     }
 }
 
-function registerClassByQualifiedName(qn: string, target: Class) {
+function registerClass(qn: string, target: Class) {
     // new entries in registry
     const classes = registry.get(qn);
     if (! classes) {
@@ -208,8 +260,8 @@ export namespace Namespace {
             return `${getQualifiedName(ns)}.${target.name}`;
         } else {
             const qname = target.name;
-            return (Errors.isError(target) && ! qname.endsWith('Error'))
-                ? 'Error' // fallback
+            return (Errors.isError(target) && ! Namespace.hasClass(qname)) 
+                ? 'error.' + qname // fallback if not a standard error
                 : qname;
         }
     }
@@ -228,13 +280,13 @@ export namespace Namespace {
         if (cl) {
             return cl;
         } else {
-            const Err = Errors.getClass('Missing Name', true, 404);
+            const Err = Errors.getClass('Not Found', true, 404);
             throw new Err(`"${qname}" not found in registry`);
         }
     }
 
     /**
-     * Lookup for a class by name
+     * Lookup for a class by name.
      * 
      * @param qname The qualified name of the class.
      * @returns The class bound to that name.
@@ -252,9 +304,24 @@ export namespace Namespace {
                     }. Consider declaring "Namespace()" on the classes.`);
             }
             return cl[0];
-        } else if (qname.endsWith('Error')) {
+        } else if (qname.startsWith('error.')) {
             // custom errors might not be registered, go with it
             return Error as any;
+        }
+    }
+
+    /**
+     * Dump the namespace registry ; if an entry contains
+     * duplicates, throws an error.
+     * 
+     * Useful after all `@Namespace`s have been set.
+     */
+    export function * checkIntegrity() {
+        for (const entry of registry) {
+            if (entry[1].length > 1) {
+                throw new Error(`A qualified name must be bound to a single class, "${entry[0]}" is bound to ${entry[1].length} classes`);
+            }
+            yield [entry[0], entry[1][0]] as const;
         }
     }
 
@@ -278,9 +345,74 @@ export namespace Namespace {
      * Should never be used, except for classes that would be managed
      * dynamically with a life-span controlled by the user.
      */
-     export declare function registerClassByQualifiedName(qn: string, target: Class): void
+    export function registerClassByQualifiedName(qn: string, target: Class): void {
+        // 'a.b.C' => 'a.b' ; 'C' => ''
+        const pkg = qn.split('.').slice(0, -1).join('.');
+        if (pkg.length > 0) {
+            let parent = Namespace.hasClass(pkg);
+            if (parent) {
+                Namespace(parent)(target);
+            } else {
+                Namespace(pkg)(target);
+            }
+        } else if (arguments[2]) { // this is a hidden argument used in error.ts (at the end)
+            // just for bootstraping JS errors otherwise they will be in the 'error' ns
+            // (chicken - egg workaround)
+            Reflect.defineMetadata(Namespace.$, '', target);
+            registerClass(qn, target);
+            // do the same as Namespace('')(target)
+            // without having a name set to error.XXXError
+        } else {
+            Namespace('')(target);
+        }
+    }
 
 }
 
-Namespace.unregisterClass = unregisterClass;
-Namespace.registerClassByQualifiedName = registerClassByQualifiedName;
+function unregisterClassTree(target: Class) {
+    unregisterClass(target);
+    unregisterTree(target);
+    registerTree(target);
+}
+
+Namespace.unregisterClass = unregisterClassTree;
+
+// just to have refs that work ; see base.ts
+setNamespaceService(Namespace);
+
+/*
+
+{class, string}, e.g. {a, "a"} are not the same, but lead to the same qname
+b, b' are different classes but with the same name b
+
+Understanding remapping :
+
+1) Start :
+                         ┌──REGISTRY──┐
+    TREES               QNAME        CLASSES
+
+"z"┬"a"─ b'             z.a          [a]
+   |                    z.a.b        [b, b'] <= !!!
+   └ a ┬ b ┬ c          z.a.b.c      [c]
+       |   └ d          z.a.b.d      [d]
+       └ e              z.a.e        [e]
+
+2) Cut b from a :
+
+"z"┬"a"─ b'             z.a          [a]
+   |                    z.a.b        [b']
+   └ a ─ e              z.a.e        [e]
+                        b            [b]
+ b ┬ c                  b.c          [c]
+   └ d                  b.d          [d]
+
+3) Paste b to e :
+
+"z"┬"a"─ b'             z.a          [a]
+   |                    z.a.b        [b']
+   └ a ─ e ─ b ┬ c      z.a.e        [e]
+               └ d      z.a.e.b      [b]
+                        z.a.e.b.c    [c]
+                        z.a.e.b.d    [d]
+
+*/

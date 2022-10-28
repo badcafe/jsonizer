@@ -13,6 +13,7 @@ export namespace Errors {
 
     /** Built-in error classes */
     export const errors = {
+        Error,
         EvalError,
         RangeError,
         ReferenceError,
@@ -138,8 +139,11 @@ export namespace Errors {
 
 }
 
-Object.assign(ErrorsRef, Errors); // just to have refs that work ; see base.ts
+// just to have refs that work ; see base.ts
+Object.assign(ErrorsRef, Errors);
 
 for (const err in Errors.errors) {
-    Namespace.registerClassByQualifiedName(err, Errors.errors[err as Errors.errors]);
+    const cl = Errors.errors[err as Errors.errors];
+    // errors are special : send a hidden arg to prevent setting error.ErrXXX
+    Namespace.registerClassByQualifiedName.apply(null, [err, cl, true] as any);
 }

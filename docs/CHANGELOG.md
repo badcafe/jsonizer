@@ -1,5 +1,14 @@
 # Jsonizer Changelog
 
+## 8.0.0
+
+* **Breaking change** : Custom errors are now in their own namespace `error` ; a name that ends with `Error` is no longer handled as an `Error`, except for Javascript standard errors. This change has no impact on existing applications except if a mapper of a custom error were **stored** with the old name ; in that case it should be renamed with the prefix `error.`, e.g. `error.MyError`.
+* Bug fix: Namespace dynamics : On class rename or on relocating a namespace, children classes are following the new name.
+* Adding `Namespace.checkIntegrity()` to ensure namespace consistency after everything is wired up.
+* Including Asynchronizer tests.
+
+-----
+
 ### 7.0.6
 
 * Makes global objects global accross multiple library loads
@@ -23,6 +32,8 @@
 ## 7.0.0
 
 * Expose `mjs` (as the default) and `cjs` properly, to prevent `Attempted import error: 'Errors' is not exported from '@badcafe/jsonizer'` when module resolution result on importing `cjs` from a module (issue encountered in CRA v4).
+
+-----
 
 ### 6.0.4
 

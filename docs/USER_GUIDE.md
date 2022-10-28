@@ -496,6 +496,8 @@ Errors.getCode(notFoundError);
 // 404
 ```
 
+> `error` is the namespace for errors, hence the qualified name of an error has the form `error.Not Found` for example.
+
 ### The `'.'` (self) builder
 
 When entering a builder, the argument passed is the incoming data structured augmented so far, but Jsonizer supplies more context : `this` is set to a stack of the data structure hierarchy.
@@ -930,6 +932,7 @@ A namespace aims to group related items under a universal naming system (for nam
 * For an app of your own, since nothing is designed to be exposed to others, a relative name such as `myApp` is enough.
 
 * Jsonizer's own namespace is `npm:@badcafe/jsonizer` and **must not** be used for other material than those available in this library.
+* Errors have also their own namespace which is `error` and will be used automatically for any custom error that has no user defined namespace. It **must not** be used for classes that don't inherit `Error`.
 
 ### Jsonizer namespaces
 
@@ -976,9 +979,19 @@ By transitivity, the Category is relocated to `org.example.myApp.Product.Categor
 
 The more often, you don't have to take care of namespaces, but if you expose your classes in a library, this is your responsability. Don't let the users of your library set themselves a namespace to your classes.
 
-Jsonizer use namespaces when revivers are sent aside the data to revive. A stringified reviver lost the class identity to which it belongs, that can be recover only thanks to namespaces. Jsonizer will warn you when 2 revivers are bound to classes with the same qualified name.
+Jsonizer use namespaces when revivers are sent aside the data to revive. A stringified reviver lost the class identity to which it belongs, that can be recover only thanks to namespaces.
 
-> Don't write mappers with qualified names, e.g.
+** Jsonizer will throw an error you when 2 revivers are bound to classes with the same qualified name.** Since during namespace settings some namespaces might overlap temporarily, such error can be thrown only at runtime. However, when you are sure that everything is wired up, you can check the integrity of the namespace registry :
+
+```typescript
+Namespace.checkIntegrity();
+```
+
+...yields tuples of [qualified name, class] present in the registry ; throws an error if 2 classes have the same qualified name. Note that a namespace defined with a string is different of a namespace defined with a class of the same name.
+
+If namespace consistency is not checked after everything is wired up, you might encountered errors later when your app is up. It is recommended to call it after the setup of your app is done.
+
+> Within revivers, **never write mappers with qualified names**, e.g.
 > ```typescript
 > @Reviver<Category>({
 >     category: 'org.example.myApp.Product.Category' // 👎  don't write that

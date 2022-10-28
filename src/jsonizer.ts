@@ -1571,7 +1571,7 @@ export function stringify(
         throw new TypeError('Unable to stringify with a reviver ; please pass a replacer instead');
     }
     if (replacer instanceof internal.Replacer && replacer.end) {
-        const Err = Errors.getClass('Illegal Access', true);
+        const Err = Errors.getClass('Precondition Failed', true, 412);
         throw new Err('This instance of replacer was already used in JSON.stringify(), please create a new one with Jsonizer.replacer()');
     }
     // in every case use Jsonizer.replacer() because we need the context for
