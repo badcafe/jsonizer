@@ -28,4 +28,13 @@ describe('Class', () => {
 
     });
 
+    describe('Inherit', () => {
+        test('Parent class is also the namespace', () => {
+            class ParentA {}
+            @Namespace(ParentA)
+            class ChildA extends ParentA {}
+            expect(Namespace.getQualifiedName(ChildA)).toBe('ParentA.ChildA');
+        })
+    });
+
 });

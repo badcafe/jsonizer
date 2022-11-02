@@ -162,15 +162,17 @@ export function Namespace(ns: Class & Ext | string): (target: Class) => void {
                     cl[IS_STRING] = true; // then locks the class name
                 }
                 if (parent) {
-                    parent[CHILDREN]?.push(cl)
-                        ?? (parent[CHILDREN] = [cl]);
+                    parent.hasOwnProperty(CHILDREN)
+                        ? parent[CHILDREN]!.push(cl)
+                        : (parent[CHILDREN] = [cl]);
                 }        
                 return cl!;
             }, undefined as any as Class & Ext);
         }
         if (typeof ns !== 'string') {
-            ns[CHILDREN]?.push(target)
-                ?? (ns[CHILDREN] = [target]);
+            ns.hasOwnProperty(CHILDREN)
+                ? ns[CHILDREN]!.push(target)
+                : (ns[CHILDREN] = [target]);
         } // else ns is ''
         // new qname
         Reflect.defineMetadata(Namespace.$, ns, target);
@@ -191,7 +193,7 @@ const registry: Map<string, (Class & Ext)[]> = (globalThis as any)[REGISTRY]
     ?? ((globalThis as any)[REGISTRY] = new Map());
 
 function unregisterTree(target: Class & Ext) {
-    for (const child of target[CHILDREN] ?? []) {
+    for (const child of target.hasOwnProperty(CHILDREN) ? target[CHILDREN]! : []) {
         unregisterClass(child);
         unregisterTree(child);
     }
@@ -213,7 +215,7 @@ function unregisterClass(target: Class) {
 }
 
 function registerTree(target: Class & Ext) {
-    for (const child of target[CHILDREN] ?? []) {
+    for (const child of target.hasOwnProperty(CHILDREN) ? target[CHILDREN]! : []) {
         const qn = Namespace.getQualifiedName(child);
         registerClass(qn, child);
         registerTree(child);

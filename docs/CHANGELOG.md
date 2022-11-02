@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 8.0.1
+
+* Bug fix: Maximum call stack size exceeded with weird hierarchy
+
 ## 8.0.0
 
 * **Breaking change** : Custom errors are now in their own namespace `error` ; a name that ends with `Error` is no longer handled as an `Error`, except for Javascript standard errors. This change has no impact on existing applications except if a mapper of a custom error were **stored** with the old name ; in that case it should be renamed with the prefix `error.`, e.g. `error.MyError`.

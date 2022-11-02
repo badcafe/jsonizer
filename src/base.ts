@@ -83,8 +83,11 @@ export namespace Class {
                 NsService('')(fun)
             }
             // make a copy
-            const children = [...fun[CHILDREN] ?? []];
-            delete fun[CHILDREN];
+            let children: Class[] = [];
+            if (fun.hasOwnProperty(CHILDREN)) {
+                children = [...fun[CHILDREN]!];
+                delete fun[CHILDREN];
+            }
             const wrapped = new Proxy(fun, {
                 get(target: any, prop: PropertyKey, receiver: any): any {
                     return prop === 'name'
