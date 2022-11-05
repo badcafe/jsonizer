@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 8.0.2 ???
+
+* Allow to `.map()` array items to a reviver.
+
 ### 8.0.1
 
 * Bug fix: Maximum call stack size exceeded with weird hierarchy

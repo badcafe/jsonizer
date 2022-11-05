@@ -975,7 +975,10 @@ namespace internal {
                 //      fun(key, value): any, when passed as 2nd argument to JSON.parse()
                 // or   fun(json)             when used on already parsed data
                 apply(target, thisArg, argArray) {
-                    if (argArray.length === 1) {
+                    if (argArray.length === 1 || (argArray.length == 3
+                            // case of .map(Reviver.get(Foo))
+                            && typeof argArray[1] === 'number' && Array.isArray(argArray[2]))
+                    ) {
                         const [json] = argArray;
                         return json === undefined
                             ? undefined

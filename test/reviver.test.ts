@@ -362,3 +362,10 @@ describe('Revivers generation', () => {
         })
     });
 });
+
+describe('Misc', ()=> {
+    test('.map() to a reviver', () => {
+        const date = ['2022-11-05'].map(Reviver.get(Date))[0];
+        expect(date).toBeInstanceOf(Date);
+    })
+});
