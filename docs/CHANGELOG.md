@@ -1,8 +1,9 @@
 # Jsonizer Changelog
 
-### 8.0.2 ???
+### 8.0.2
 
 * Allow to `.map()` array items to a reviver.
+* Allow a reviver to handle both an array or an object.
 
 ### 8.0.1
 
