@@ -1211,16 +1211,21 @@ namespace internal {
                             // the type accept small variations of numbers
                             // a range '12-12' give 12, keep it !
                             //         '-10' give 10, keep it !
-                            context.key = Math.abs(Number.parseInt(key));
-                            context.i++;
-                            if (context.key === context.i && context.startAny === context.i) {
-                                context.startAny = context.i + 1;
+                            const n = Math.abs(Number.parseInt(key));
+                            if (Number.isNaN(n)) { // it may happen
+                                // just ignore // context.keys.add(key);
                             } else {
-                                // there is a rupture in the sequence
-                                // don't apply '*' to that key
-                                context.keys.add(context.key);
+                                context.key = n;
+                                context.i++;
+                                if (context.key === context.i && context.startAny === context.i) {
+                                    context.startAny = context.i + 1;
+                                } else {
+                                    // there is a rupture in the sequence
+                                    // don't apply '*' to that key
+                                    context.keys.add(context.key);
+                                }
+                                context.restAny = Math.max(context.restAny, context.key);
                             }
-                            context.restAny = Math.max(context.restAny, context.key);
                         } else {
                             context.keys.add(key);
                         }

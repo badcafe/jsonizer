@@ -1,4 +1,5 @@
 import { Jsonizer, Namespace, Reviver } from "../src";
+import { Category } from "./userGuide.namespaces.jsonizer.movie";
 
 describe('Operations with Revivers', () => {
     describe('Revive object', () => {
@@ -363,9 +364,39 @@ describe('Revivers generation', () => {
     });
 });
 
-describe('Misc', ()=> {
+describe('Use cases', ()=> {
+
     test('.map() to a reviver', () => {
         const date = ['2022-11-05'].map(Reviver.get(Date))[0];
         expect(date).toBeInstanceOf(Date);
     })
+
+    test('a reviver can handle both an array or an object', () => {
+        interface People {
+            name: string
+            categories: Category[]
+        }
+        interface PeopleDTO {
+            name: string
+            categories: Category[] | Category
+        }
+        interface Category {
+            label: string,
+            date: Date
+        }
+        const reviver = Jsonizer.reviver<People, PeopleDTO>({
+            categories: {
+                '.': cat => Array.isArray(cat) ? cat : [cat],
+                date: Date,
+                '*': {
+                    date: Date,
+                }
+            }
+        });
+        const revObj = reviver({name: 'Bob', categories: { label: 'employee', date: '2022-01-31' }});
+        expect(revObj.categories[0].date).toBeInstanceOf(Date);
+        const revArr = reviver({name: 'Bob', categories: [{ label: 'employee', date: '2022-01-31' }]});
+        expect(revArr.categories[0].date).toBeInstanceOf(Date);
+    });
+
 });
