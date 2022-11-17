@@ -1,4 +1,5 @@
-import { Class, Namespace } from "../src";
+import { Class, Jsonizer, Namespace } from "../src";
+import { Errors } from "../src/base";
 
 describe('Class', () => {
     describe('rename()', () => {
@@ -37,4 +38,25 @@ describe('Class', () => {
         })
     });
 
+    describe('Library loaded multiple times', () => {
+        const NameConflict = Errors.getClass('Name Conflict', true, 409);
+
+        // this is what happen when the library is loaded multiple times :
+        @Namespace(Jsonizer.NAMESPACE)
+        class Reviver {} // ...except that the impl is the same as internal.reviver
+        const revQName = Namespace.getQualifiedName(Reviver);
+
+        test('Duplicate', () => {
+            expect(() => {
+                Namespace.hasClass(revQName)
+            }).toThrow(NameConflict);
+        });
+
+        test('Deduplicate', () => {
+            Namespace.dedup(revQName);
+            expect(() => {
+                Namespace.hasClass(revQName)
+            }).not.toThrow(NameConflict);
+        });
+    })
 });

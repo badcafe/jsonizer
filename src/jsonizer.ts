@@ -1623,10 +1623,15 @@ Namespace(Jsonizer.NAMESPACE)(internal.Reviver);
 Reviver<internal.Reviver, Mappers<internal.Reviver>>({
     '.': mappers => new internal.Reviver(mappers) // Jsonizer.reviver(mappers)
 })(internal.Reviver);
+Namespace.dedup(Namespace.getQualifiedName(internal.Reviver));
+// duplicates may happen when the lib is loaded several times
+// (because the registry is kept unique)
 
 Namespace(Jsonizer.NAMESPACE)(internal.Replacer); // useless, but aligned
+Namespace.dedup(Namespace.getQualifiedName(internal.Replacer));
 
 Namespace(Jsonizer.NAMESPACE)(Jsonizer.Self.Identity);
 Reviver<any>({
     '.': any => any
 })(Jsonizer.Self.Identity);
+Namespace.dedup(Namespace.getQualifiedName(Jsonizer.Self.Identity));

@@ -313,6 +313,32 @@ export namespace Namespace {
     }
 
     /**
+     * Deduplicate a name in the namespace registry.
+     * 
+     * If there are several entries bound to the given
+     * qualified name, they are considered similar and
+     * the first is kept.
+     * 
+     * > When each class has a unique qualified name,
+     * > this won't happen. When it happens, it has to
+     * > be fixed by setting different qualified names.
+     * > When it still happens, it's because the library
+     * > is loaded several times ; in that case, the
+     * > registry is still unique but duplicates may
+     * > be found, typically for internal classes (this
+     * > function was designed for them, you ought NOT
+     * > use it).
+     * 
+     * @param qname The qualified name to deduplicate if necessary.
+     */
+    export function dedup(qname: string) {
+        const cl = registry.get(qname);
+        if (cl && cl.length > 1) {
+            cl.length = 1;
+        }
+    }
+
+    /**
      * Dump the namespace registry ; if an entry contains
      * duplicates, throws an error.
      * 

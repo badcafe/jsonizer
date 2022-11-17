@@ -3,6 +3,7 @@
 ### 8.0.3
 
 * Namespace integrity can be checked without throwing an error.
+* Deduplicates internal classes when the library is loaded several times.
 
 ### 8.0.2
 
