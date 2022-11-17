@@ -317,11 +317,18 @@ export namespace Namespace {
      * duplicates, throws an error.
      * 
      * Useful after all `@Namespace`s have been set.
+     * 
+     * @param noFail Don't throw an error.
      */
-    export function * checkIntegrity() {
+    export function* checkIntegrity(noFail = true) {
         for (const entry of registry) {
             if (entry[1].length > 1) {
-                throw new Error(`A qualified name must be bound to a single class, "${entry[0]}" is bound to ${entry[1].length} classes`);
+                const err = new Error(`A qualified name must be bound to a single class, "${entry[0]}" is bound to ${entry[1].length} classes`);
+                if (! noFail) {
+                    throw err;
+                }
+                console.error(err);
+                yield [entry[0], ...entry[1]] as const;
             }
             yield [entry[0], entry[1][0]] as const;
         }

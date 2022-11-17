@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 8.0.3
+
+* Namespace integrity can be checked without throwing an error.
+
 ### 8.0.2
 
 * Allow to `.map()` array items to a reviver.
