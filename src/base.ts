@@ -95,6 +95,11 @@ export namespace Class {
                         : prop === CHILDREN
                             ? children
                             : Reflect.get(target, prop, receiver);
+                },
+                construct(target: any, args: any[]) {
+                    const o = new target(...args);
+                    o.constructor = wrapped;
+                    return o;
                 }
             });
             for (const child of children) {

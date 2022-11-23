@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 8.0.4
+
+* Bug fix: class rename didn't applied to instances.
+
 ### 8.0.3
 
 * Namespace integrity can be checked without throwing an error.
