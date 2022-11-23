@@ -9,6 +9,8 @@ describe('Class', () => {
             const YourClass = Class.rename(MyClass, 'YourClass');
             expect(MyClass.name).toBe('MyClass');
             expect(YourClass.name).toBe('YourClass');
+            const yourInstance = new YourClass();
+            expect(yourInstance.constructor.name).toBe('YourClass');
         });
 
         test('with @Namespace', () => {
