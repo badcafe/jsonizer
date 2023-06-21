@@ -1,6 +1,6 @@
 {
   "name": "@badcafe/jsonizer",
-  "version": "8.1.0",
+  "version": "8.1.1",
   "description": "Structural reviving for JSON",
   "type": "module",
   "main": "dist/index.mjs",
