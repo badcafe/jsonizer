@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 8.1.0
+
+* A replacer can be called directly on a value without calling `JSON.stringify()`, e.g. `replacer('', data)`
+
 ### 8.0.4
 
 * Bug fix: class rename didn't applied to instances.

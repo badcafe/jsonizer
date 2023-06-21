@@ -1260,6 +1260,32 @@ function getData() {
 
 > Adjacent nested structures are merged when possible to reduce the required mappings. The optimization is smart enough to almost produce what you would have design by yourself.
 
+#### Replacer direct invokation
+
+A replacer can be invoked without calling `JSON.stringify(data, replacer)`.
+
+Since the replacer function takes two parameters, the key and the value being stringified, just invoke it with the empty string ``'' as the key :
+
+```typescript
+// create a context for the capture :
+const replacer = Jsonizer.replacer();
+const serializable = replacer('', data); // key of data is ''
+```
+
+The replacer function is not responsible of the stringification, which is done by `JSON.stringify`, therefore the result looks like the DTO object before its stringification.
+
+This allow to get serializable data to send without producing a JSON string. Since such usage is ruled by
+the [structured clone algorithm](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm)
+the `Date`s are preserved.
+
+However, the reviver can be applied on the data received in order to rebuild class instances, which is not possible by the structured clone algorithm.
+
+If you are not interseting of capturing the revivers, just use the default replacer :
+
+```typescript
+const serializable = Jsoniser.REPLACER('', data); // key of data is ''
+```
+
 ### Subreviver
 
 Taking a reviver, it is possible to extract a subreviver from it :

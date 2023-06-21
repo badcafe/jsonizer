@@ -615,16 +615,16 @@ export interface Replacer<Type = any> {
  * its JSON representation.
  * 
  * ```typescript
- *@Reviver<Person>({ // 👈  bind the reviver to the class
- *    '.': ({name, birthDate}) => new Person(name, birthDate), // 👈  instance builder
- *    birthDate: Date // 👈  field mapper
- *})
- *class Person {
- *    constructor( // all fields are passed as arguments to the constructor
- *        public name: string,
- *        public birthDate: Date
- *    ) {}
- *}
+ * ⓐReviver<Person>({ // 👈  bind the reviver to the class
+ *     '.': ({name, birthDate}) => new Person(name, birthDate), // 👈  instance builder
+ *     birthDate: Date // 👈  field mapper
+ * })
+ * class Person {
+ *     constructor( // all fields are passed as arguments to the constructor
+ *         public name: string,
+ *         public birthDate: Date
+ *     ) {}
+ * }
  * ```
  * 
  * It contains mappers for reviving individual fields to specific instances and
@@ -781,7 +781,7 @@ export namespace Jsonizer {
      * this replacer can capture the revivers.
      * 
      * > During stringification, custom `[Jsonizer.toJSON]()` functions
-     * will be used instead of the standard method.
+     * will be used in preference over the standard `toJSON()` method.
      * 
      * ## Capture phase
      * 
@@ -999,13 +999,13 @@ namespace internal {
                         // exclude internal.Reviver.toJSON()
                         && prop !== 'toJSON')
                     ) {
-                        const [any, self] = Reflect.get(target, Mappers.Jokers.$, receiver)
+                        const [any, self] = Reflect.get(target, Mappers.Jokers.$, receiver) as [string, string]
                             ?? ['*', '.'];
                         if (prop === any || prop === self) {
-                            return Reflect.get(target, Mappers$, receiver)[prop];
+                            return (Reflect.get(target, Mappers$, receiver) as any)[prop];
                         } else {
                             // subreviver
-                            const mappers = Reflect.get(target, internal.Reviver.$, receiver);
+                            const mappers = Reflect.get(target, internal.Reviver.$, receiver) as any;
                             const key = Number(prop);
                             const submapper = mappers[prop] // exact match
                                 ?? (Number.isNaN(key)
@@ -1029,7 +1029,7 @@ namespace internal {
                 // when setting a funMapper after resolution
                 set(target, prop, value, receiver) {
                     if (typeof prop === 'number' || (typeof prop === 'string')) {
-                        return Reflect.get(target, Mappers$, receiver)[prop] = value;
+                        return (Reflect.get(target, Mappers$, receiver) as any)[prop] = value;
                     } else {
                         // preserve [internal.Reviver.$]
                         return false;
@@ -1340,6 +1340,21 @@ namespace internal {
 
         end = false;
         stack: Replacer.Context[] = [];
+        // whether launched with JSON.stringify() or not
+        stringify = false;
+
+        init(value: any) {
+            // the context that holds the root describes an object with a single item
+            this.pushContext({
+                size: 1,
+                isArray: false,
+                before: {'' : value }, // the root value before calling .toJSON() on it
+                mapper: {},
+                key: '',
+                count: 0,
+                keys: []
+            });
+        }
 
         constructor() {
             super();
@@ -1350,7 +1365,17 @@ namespace internal {
                 //      fun(key, value): string
                 apply(target, thisArg, argArray) {
                     const [key, value]: [string, any] = argArray as any;
-                    return target.replace(key, value); // do it !
+                    const directCall = target.stack.length === 0;
+                    if (directCall) {
+                        // only for using replacer(val) instead of JSON.stringify(val, replacer)
+                        target.init(value);
+                        target.end = true;
+                    }
+                    const res = target.replace(key, value); // do it !
+                    if (directCall) {
+                        target.end = true;
+                    }
+                    return res;
                 }
             });
         }
@@ -1453,11 +1478,16 @@ namespace internal {
             const context = this.stack[this.stack.length -1];
             try {
                 const before = context.before[key];
-                const after = before === null || before === undefined || before === true || before === false
+                let after = before === null || before === undefined || before === true || before === false
                     ? value
                     : before[Jsonizer.toJSON]?.()
-                        ?? value; // else unchanged, it is the result of toJSON()
-
+                        ?? (
+                            this.stringify
+                            || value instanceof Date // see https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
+                                ? value // else unchanged, it is the result of toJSON()
+                                : value?.toJSON?.() // else we are not in JSON.stringify(value, replacer) but in replacer(value)
+                                    ?? value
+                        );
                 const [size, isArray] = Array.isArray(after)
                     ? [after.length, true]
                     : after && typeof after === 'object'
@@ -1485,6 +1515,14 @@ namespace internal {
                             ? context.mapper // recycle
                             : {} // collect submappers
                         : undefined // don't collect anything more
+                    if (! this.stringify && after === value) {
+                        // we need a clone to left the original intact
+                        if (isArray) {
+                            after = [...after];
+                        } else {
+                            after = Object.assign({}, after);
+                        }
+                    }
                     this.pushContext({
                         size,
                         isArray,
@@ -1494,6 +1532,18 @@ namespace internal {
                         count: 0,
                         keys: []        
                     });
+                    if (! this.stringify) {
+                        // we are not in JSON.stringify(value, replacer) but in replacer(value)
+                        if (isArray) {
+                            (after as any[]).forEach((v, i) => {
+                                after[i] = this.replace(String(i), v)
+                            });
+                        } else {
+                            for (const key in after) {
+                                after[key] = this.replace(key, after[key]);
+                            }
+                        }
+                    }
                 }
                 // function: left as-is
                 // will be set to null in [] or undefined and discarded in {}
@@ -1589,16 +1639,9 @@ export function stringify(
         : replacer;
     try {
         if (replacer instanceof internal.Replacer) {
-            // the context that holds the root describes an object with a single item
-            replacer.pushContext({
-                size: 1,
-                isArray: false,
-                before: {'' : value }, // the root value before calling .toJSON() on it
-                mapper: {},
-                key: '',
-                count: 0,
-                keys: []
-            });
+            // MUST BE set outside because we are passing the value before transformation
+            replacer.init(value);
+            replacer.stringify = true;
         } // else not our concern
         // go !
         return jsonStringify(value, replacer as any, space);
