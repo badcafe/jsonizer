@@ -110,19 +110,3 @@ declare global {
     }
 }
 RegExp.prototype[Jsonizer.toJSON] = RegExp.prototype.toString // => '/the regexp/'
-
-// TODO ???
-// revivers for TypedArray: 
-//                  Int8Array Int16Array Int32Array
-//                  Uint8Array Uint8ClampedArray Uint16Array Uint32Array
-//                  Float32Array Float64Array
-
-/*
-// TypedArray
-JSON.stringify([new Int8Array([1]), new Int16Array([1]), new Int32Array([1])]);
-// '[{"0":1},{"0":1},{"0":1}]'
-JSON.stringify([new Uint8Array([1]), new Uint8ClampedArray([1]), new Uint16Array([1]), new Uint32Array([1])]);
-// '[{"0":1},{"0":1},{"0":1},{"0":1}]'
-JSON.stringify([new Float32Array([1]), new Float64Array([1])]);
-// '[{"0":1},{"0":1}]'
-*/
