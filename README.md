@@ -8,7 +8,9 @@
 >
 > **Easy nested instance reviving for JSON**
 
-`@badcafe/jsonizer` is a [Typescript](https://www.typescriptlang.org/) library that takes care of instances of classes in the hierarchy of your data structure when you use `JSON.stringify()` and `JSON.parse()`.
+`@badcafe/jsonizer` is a Javascript library  that takes care of instances of classes in the hierarchy of your data structure when you use `JSON.stringify()` and `JSON.parse()`.
+
+`@badcafe/jsonizer` is written in [Typescript](https://www.typescriptlang.org/) but can also be used just in JS.
 
 <p style='align: center'>
     <img src="docs/matryoshka.svg"/>
@@ -37,11 +39,13 @@ const personJson = JSON.stringify(person);
 // store or send the data
 ```
 
-Dates in `personJson` will appear as text, and if you parse back that JSON string to a plain object, every date field will be `string` instead of `Date` !
+Dates in `personJson` will appear as text (e.g. `"birthDate":"1998-10-21T00:00:00.000Z"`), and if you parse back that JSON string to a plain object, every date field will be `string` instead of `Date` !
 
 Now, let's use **Jsonizer** 😍
 
 ```typescript
+// we are using Typescript in this example
+// but without the type it works the same in pure JS 
 const personReviver = Jsonizer.reviver<typeof person>({
     birthDate: Date,
     hobbies: {
