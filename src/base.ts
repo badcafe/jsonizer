@@ -46,9 +46,7 @@ export namespace Class {
     /**
      * Any concrete class, that is to say not abstract.
      */
-    export type Concrete<Type = any, Args extends any[] = any[]> = {
-        new(...args: Args): Type
-    }
+    export type Concrete<Type = any, Args extends any[] = any[]> = new(...args: Args) => Type
 
     /**
      * Any abstract class.
