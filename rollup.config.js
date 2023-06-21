@@ -13,7 +13,17 @@ export default [{
 		format: 'es'
 	}],
 	plugins: [
-		typescript(),
+		typescript({
+            tsconfigOverride: {
+                "compilerOptions": {
+//                    "removeComments": true,
+//                    "declaration": false,
+//                    "declarationMap": false,
+//                    "sourceMap": false,
+                    "inlineSources": false
+                }
+            }
+        }),
 		nodeResolve(),
 		commonjs()
 	],
