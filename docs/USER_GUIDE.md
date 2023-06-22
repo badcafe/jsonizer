@@ -1276,11 +1276,11 @@ The replacer function is not responsible of the stringification, which is done b
 
 This allow to get serializable data to send without producing a JSON string. Since such usage is ruled by
 the [structured clone algorithm](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm)
-the `Date`s are preserved.
+the `Date`s objects are preserved.
 
 However, the reviver can be applied on the data received in order to rebuild class instances, which is not possible by the structured clone algorithm.
 
-If you are not interseting of capturing the revivers, just use the default replacer :
+If you are not interesting on capturing the revivers, just use the default replacer :
 
 ```typescript
 const serializable = Jsoniser.REPLACER('', data); // key of data is ''
