@@ -6,9 +6,9 @@
   "main": "dist/index.mjs",
   "exports": {
     ".": {
-        "import": "./dist/index.mjs",
-        "require": "./dist/index.cjs",
-        "types": "./dist/index.d.ts"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
     }
   },
   "files": [
@@ -82,7 +82,7 @@
     "rollup-plugin-typescript2": "^0.29.0",
     "sloc": "^0.2.1",
     "ts-jest": "^26.4.4",
-    "ts-node": "^10.4.0",
+    "ts-node": "^10.9.1",
     "typedoc": "^0.22.17",
     "typescript": "^4.7.4"
   },
