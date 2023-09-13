@@ -1,5 +1,10 @@
 # Jsonizer Changelog
 
+### 8.1.2
+
+* Adding live examples
+* Simplify few tests
+
 ### 8.1.1
 
 * Rebuild

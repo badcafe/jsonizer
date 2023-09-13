@@ -61,4 +61,6 @@ Every dates string in the JSON text have been mapped to `Date` objects in the pa
 
 **Jsonizer** can indifferently revive JSON data structures (arrays, objects) or class instances with recursively nested custom classes, third-party classes, built-in classes, or sub JSON structures (arrays, objects).
 
+See it in action : [![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/edit/typescript-jsonizer-class-example?file=index.ts)
+
 <a href="http://badcafe.github.io/jsonizer">Full documentation and API available HERE</a>

@@ -7,11 +7,13 @@
 
 > **Easy nested instance reviving for JSON**
 
-`@badcafe/jsonizer` <img style="float: right" src="matryoshka.svg" width="50%"/> is a [Typescript](https://www.typescriptlang.org/) library that takes care of instances of classes in the hierarchy of your data structure when you use `JSON.stringify()` and `JSON.parse()`.
+`@badcafe/jsonizer` <img style="float: right" src="matryoshka.svg" width="50%"/> is a [Typescript](https://www.typescriptlang.org/)/Javascript library that takes care of instances of classes in the hierarchy of your data structure when you use `JSON.stringify()` and `JSON.parse()`.
 
-Jsonizer mainly supplies a decorator (`@Reviver`) that describes how to revive classes, and two helper functions (`Jsonizer.reviver()` and `Jsonizer.replacer()`).
+Jsonizer mainly supplies a class decorator (`@Reviver()`) that describes how to revive classes, and two helper functions (`Jsonizer.reviver()` and `Jsonizer.replacer()`).
 
 Jsonizer can indifferently revive JSON data structures (arrays, objects) or class instances with recursively nested custom classes, third-party classes, built-in classes, or sub JSON structures (arrays, objects).
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/edit/typescript-jsonizer-class-example?file=index.ts)
 
 ### License <!-- {docsify-ignore} -->
 
@@ -244,6 +246,8 @@ Jsonizer supplies the decorator function `@Reviver` that allows to bind easily s
 
 ### Custom classes
 
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/edit/typescript-jsonizer-class-example?file=index.ts)
+
 In the following example, we introduce the 'self' key `'.'`. Unlike other entries, it is not bound to **a mapper** but to **a builder function** that is supposed to create a new instance of the expected class. The builder function takes as argument the object that contains the values parsed and mapped to their type. This means that below, the `birthDate` argument passed to the constructor is already a `Date` instance (because there is a mapping that had augmented it).
 
 ```typescript
@@ -332,6 +336,8 @@ Reviver<Person>({
 ```
 
 ### Class with nested JSON
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/edit/typescript-jsonizer-nested-example?file=index.ts)
 
 ```typescript
 interface Hobby {
@@ -772,6 +778,8 @@ const bufJson = JSON.stringify(buf, Jsonizer.REPLACER); // 👈  pass a Jsonizer
 
 ### Fixing a bad structure
 
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/edit/typescript-jsonizer-dto-example?file=index.ts)
+
 Sometimes, you receive external data that are not well designed :
 
 ```typescript
@@ -806,14 +814,13 @@ export namespace Person {
         hobbies: string
     }
 
-    export const reviver = Jsonizer.reviver<Person, Person.DTO & { firstName: string }>({
-        '.': item => {
-            //  👇 rename the field
-            item.firstName = item.first_name!;
-            delete item.first_name;
-            return item; // we choose to not make a copy, we are
-                        // just returning the updated structure          🖕
-                        // this is why the 'firstName' field is added to the source type
+    export const reviver = Jsonizer.reviver<Person, Person.DTO>({
+        '.': ({ first_name, ...otherProps }) => {
+            return {
+                //  👇 rename the field
+                firstName: first_name,
+                ...otherProps
+            }
         },
         numberOfHobbies: {
             //  👇 fix the type
@@ -822,9 +829,11 @@ export namespace Person {
         birthDate: {
             //  👇 fix the Date
             '.': date => {
-                const [day, montIndex, year] = date.split('/') // don't use new Date(year, montIndex - 1, day)
-                    .map(part => parseInt(part));              // because it may shift due to the local time zone
-                return new Date(Date.UTC(year, montIndex - 1, day));
+                const [day, month, year] = date.split('/')
+                    .map(part => parseInt(part));
+                // don't use new Date(year, month - 1, day)
+                // because it may shift due to the local time zone
+                return new Date(Date.UTC(year, month - 1, day));
             }
         },
         hobbies: {
@@ -1451,19 +1460,18 @@ function createPerson(name: string, birthDate: Date) {
         name,
         birthDate
     }
-    Object.defineProperty(person, 'constructor', {
-        value: PersonFactory,
-        enumerable: false
-    });
     Object.defineProperty(person, 'toJSON', {
         value: function() {
             return [this.name, this.birthDate] as const;
         },
         enumerable: false
     });
+    Object.setPrototypeOf(person, PersonFactory.prototype);
     return person;
 }
 ```
+
+...but at this time you ought simply wonder why not turning the structure to a real class ?
 
 ### Optimization
 
