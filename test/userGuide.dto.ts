@@ -16,14 +16,13 @@ export namespace Person {
         hobbies: string
     }
 
-    export const reviver = Jsonizer.reviver<Person, Person.DTO & { firstName: string }>({
-        '.': item => {
-            //  👇 rename the field
-            item.firstName = item.first_name!;
-            delete item.first_name;
-            return item; // we choose to not make a copy, we are
-                        // just returning the updated structure          🖕
-                        // this is why the 'firstName' field is added to the source type
+    export const reviver = Jsonizer.reviver<Person, Person.DTO>({
+        '.': ({ first_name, ...otherProps }) => {
+            return {
+                //  👇 rename the field
+                firstName: first_name,
+                ...otherProps
+            }
         },
         numberOfHobbies: {
             //  👇 fix the type

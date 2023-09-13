@@ -1227,16 +1227,13 @@ describe('USER_GUIDE.md examples', () => {
                         name,
                         birthDate
                     }
-                    Object.defineProperty(person, 'constructor', {
-                        value: PersonFactory,
-                        enumerable: false
-                    });
                     Object.defineProperty(person, 'toJSON', {
                         value: function() {
                             return [this.name, this.birthDate] as const;
                         },
                         enumerable: false
                     });
+                    Object.setPrototypeOf(person, PersonFactory.prototype);
                     return person;
                 }
                 //                 Target                    Source
