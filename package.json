@@ -1,6 +1,6 @@
 {
   "name": "@badcafe/jsonizer",
-  "version": "8.1.2",
+  "version": "8.1.3",
   "description": "Structural reviving for JSON",
   "type": "module",
   "main": "dist/index.mjs",
@@ -60,11 +60,9 @@
     "nested",
     "hierarchy",
     "structural",
-    "marshaller",
-    "unmarshaller",
     "typescript",
-    "inria",
-    "namespace"
+    "namespace",
+    "inria"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^17.0.0",
