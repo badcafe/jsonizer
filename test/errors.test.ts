@@ -9,9 +9,13 @@ describe('Errors', () => {
             expect(String(err)).toBe(`Error: ${msg}`);
             let jsonErr = JSON.stringify(err);
             expect(jsonErr).toBe(`{}`);
-            jsonErr = JSON.stringify(err, Jsonizer.REPLACER);
+
+            const replacer = Jsonizer.replacer();
+            jsonErr = JSON.stringify(err, replacer);
             expect(jsonErr).toBe(`"Error: ${msg}"`);
             const jsonReviver = '{".":"Error"}';
+            expect(replacer.toString()).toBe(jsonReviver);
+
             const reviver = JSON.parse(jsonReviver, Reviver.get<Reviver<Error>>());
             const errFromJson = JSON.parse(jsonErr, reviver);
             expect(errFromJson).toBeInstanceOf(Error);
@@ -26,9 +30,13 @@ describe('Errors', () => {
             expect(String(err)).toBe(`TypeError: ${msg}`); // built-in errors are not rendered the same way as custom errors
             let jsonErr = JSON.stringify(err);
             expect(jsonErr).toBe(`{}`);
-            jsonErr = JSON.stringify(err, Jsonizer.REPLACER);
+
+            const replacer = Jsonizer.replacer();
+            jsonErr = JSON.stringify(err, replacer);
             expect(jsonErr).toBe(`"TypeError: ${msg}"`);
             const jsonReviver = '{".":"TypeError"}';
+            expect(replacer.toString()).toBe(jsonReviver);
+
             const reviver = JSON.parse(jsonReviver, Reviver.get<Reviver<TypeError>>());
             const errFromJson = JSON.parse(jsonErr, reviver);
             expect(errFromJson).toBeInstanceOf(TypeError);

@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 8.1.3
+
+* Better tools for error handling
+
 ### 8.1.2
 
 * Adding live examples

@@ -6,6 +6,7 @@
 
 import { namespace, Errors as ErrorsRef, Class } from './base'; // 'npm:@badcafe/jsonizer'
 
+import { Jsonizer } from './jsonizer';
 import { Namespace } from "./namespace";
 
 /** Errors utilities */
@@ -100,11 +101,27 @@ export namespace Errors {
      * 
      * @see [[getClass]]
      */
-     export function getCode<Code = string | number | undefined>(error: Error | ErrorConstructor): Code {
+    export function getCode<Code = string | number | undefined>(error: Error | ErrorConstructor): Code {
+        const code = (error as HasCode)[CODE];
+        if (code) {
+            return code as unknown as Code;
+        }
         if (error instanceof Error) {
             error = error.constructor as ErrorConstructor;
         }
-        return (error as unknown as HasCode)[CODE] as any as Code;
+        return (error as unknown as HasCode)[CODE] as unknown as Code;
+    }
+
+    /**
+     * Set an error code to some error.
+     * 
+     * @param error The actual error
+     * @param code Its code
+     */
+    export function setCode(error: Error, code: string | number) {
+        if ((error.constructor as HasCode)[CODE] !== code) {
+            (error as HasCode)[CODE] = code;
+        } // else it is in the class
     }
 
     /**
@@ -135,6 +152,16 @@ export namespace Errors {
                 : isError(Object.getPrototypeOf(err))
                           // not the same as err.prototype
             : false;
+    }
+
+    /**
+     * Stringify an error in Jsonizer style, e.g. `TypeError: Ooops !`
+     * 
+     * @param err Any error
+     */
+    export function toString(err: Error) {
+        return JSON.stringify(err, Jsonizer.REPLACER)
+            .slice(1, -1); // without surrouding quotes
     }
 
 }
