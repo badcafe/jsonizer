@@ -662,6 +662,8 @@ export function Reviver<
             new internal.Reviver(mappers as any, target),
             target
         );
+        return target; // when not used as a decorator,
+                       // for getting back a generated class (see @badcafe/ts-plugin)
     }
 }
 

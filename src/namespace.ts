@@ -180,6 +180,8 @@ export function Namespace(ns: Class & Ext | string): (target: Class) => void {
         // new entries in registry
         registerClass(qn, target);
         registerTree(target);
+        return target; // when not used as a decorator,
+                       // for getting back a generated class (see @badcafe/ts-plugin)
     }
 }
 
