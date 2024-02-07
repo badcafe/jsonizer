@@ -6,7 +6,6 @@
 
 import { namespace, Errors as ErrorsRef, Class } from './base'; // 'npm:@badcafe/jsonizer'
 
-import { Jsonizer } from './jsonizer';
 import { Namespace } from "./namespace";
 
 /** Errors utilities */
@@ -159,11 +158,14 @@ export namespace Errors {
      * 
      * @param err Any error
      */
-    export function toString(err: Error) {
-        return JSON.stringify(err, Jsonizer.REPLACER)
-            .slice(1, -1); // without surrouding quotes
-    }
+    export function toString(err: Error) {} // see below setErrorsToString()
 
+}
+
+// DO NOT EXPORT GLOBALLY
+// just to prevent a circular dependency when rolling up
+export function setErrorsToString(toString: (err:Error) => string ) {
+    Errors.toString = toString;
 }
 
 // just to have refs that work ; see base.ts

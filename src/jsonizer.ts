@@ -9,7 +9,12 @@ import { namespace, Class } from './base'; // 'npm:@badcafe/jsonizer'
 
 import { Namespace } from './namespace';
 import { deepEquals, isPrimitive } from './util';
-import { Errors } from './errors';
+import { Errors, setErrorsToString } from './errors';
+
+// avoid circular dependency
+setErrorsToString(err => JSON.stringify(err, Jsonizer.REPLACER)
+                            .slice(1, -1) // without surrouding quotes
+)
 
 ///////////////////////////////
 ///////// public API //////////
