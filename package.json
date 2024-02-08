@@ -1,6 +1,6 @@
 {
   "name": "@badcafe/jsonizer",
-  "version": "9.0.0-beta",
+  "version": "9.0.0",
   "description": "Structural reviving for JSON",
   "exports": {
     ".": {
