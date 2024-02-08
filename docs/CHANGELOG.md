@@ -4,7 +4,7 @@
 
 * Upgrade libs
 * Export CJS and ESM with `.d.cts` and `.d.mst` types declarations
-* [Check exports](https://arethetypeswrong.github.io/)
+* [Check exports](https://arethetypeswrong.github.io/?p=%40badcafe%2Fjsonizer)
 * Return target with `Reviver` and `Namespace` for getting back a generated class with `@badcafe/ts-plugin`
 * Fix circular dependency
 
