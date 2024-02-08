@@ -22,7 +22,7 @@
   "typedocOptions": {
     "out": "./docs/api",
     "hideGenerator": true,
-    "readme": "docs/README.md",
+    "readme": "./README.md",
     "exclude": ["./test/*.ts", "./src/builtin.ts", "./src/index.ts"],
     "name" : "Jsonizer",
     "includeVersion": true

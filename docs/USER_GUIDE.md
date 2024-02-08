@@ -1493,7 +1493,7 @@ In Asynchronizer, a new component called a data transfer handler (DTH) is used t
 export namespace Person {
     // see Hobby class definition in previous example
 
-    interface DTH {  // 👈  a Data Transfer Handler
+    export abstract class DTH {  // 👈  a Data Transfer Handler
         getPersonByName(name: string): Person // well, I didn't set an ID on Person 🥴
         getPersonsByBirthDate(date: Date): Person[]
         getPersonsWithHobby(hobby: string[], startDate: Date): Person[]
@@ -1521,14 +1521,15 @@ const ws = ... // create a client web socket for the path '/ws'
 // create a channel and get its transfer handler
 const th = SocketClientChannel.get(ws).transferHandler(); // 👈  1 line conf for Asynchronizer
 // create a socket client proxy to send messages
-const personDTH = th.bindSender<Person.DTH>(Person); // a sender is a stateless singleton
+const personDTH = th.bindSender(Person.DTH); // a sender is a stateless singleton
 // send messages on button click
 someButton.addEventListener('click', async ev => {
     ev.preventDefault();
     // Asynchronizer turns the RPC function
     //    to an async function 👇
-    const persons: Person[] = await personDTH.getPersonsByBirthDate(someDate);
-    //    👆 Asynchronizer transparently revive the persons and stringify 👆 the date
+    const persons = await personDTH.getPersonsByBirthDate(someDate);
+    //    👆 Asynchronizer transparently                     👆 
+    //                   revive the Person[]     and stringify the date
     renderHTMLPersonsView(persons);
     return false;
 }, true);
@@ -1541,16 +1542,16 @@ Server side, we have to implement the RPC functions of the interface :
 const ws = ... // create and configure a web socket server...
 const th = SocketServerChannel.get(ws, '/ws').transferHandler(); // 👈  1 line conf for Asynchronizer
 // receives messages from the client
-th.bindReceiver<Person.DTH>(Person, { // a receiver is a stateless singleton
+th.bindReceiver(Person.DTH, { // a receiver is a stateless singleton
  // 👇 Asynchronizer turns the RPC functions to async functions
     async getPersonsByBirthDate(date) {
                               // 👆 Asynchronizer transparently revive the date...
-        const persons: Person[] = await store.getPersonByBirthDate(date);
-        return persons; // 👈  ...and stringify the persons
+        const persons = await store.getPersonByBirthDate(date);
+        return persons; // 👈  ...and stringify the Person[]
     },
     async getPersonsWithHobby(hobby, startDate) {
-        const persons: Person[] = await store.getPersonsWithHobby(hobby, startDate.getFullYear());
-        return persons;                          // look, it's a Date instance 👆
+        const persons = await store.getPersonsWithHobby(hobby, startDate.getFullYear());
+        return persons;               // look, it's a Date instance 👆
     },
     async getPersonByName(name) {
         return await store.getPersonByName(name);

@@ -1,5 +1,15 @@
 # Jsonizer Changelog
 
+## 9.0.0
+
+* Upgrade libs
+* Export CJS and ESM with `.d.cts` and `.d.mst` types declarations
+* [Check exports](https://arethetypeswrong.github.io/)
+* Return target with `Reviver` and `Namespace` for getting back a generated class with `@badcafe/ts-plugin`
+* Fix circular dependency
+
+-----
+
 ### 8.1.3
 
 * Better tools for error handling

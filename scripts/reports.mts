@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import * as AttwProblems from '@arethetypeswrong/core/problems';
+import * as AttwTypes from '@arethetypeswrong/core/types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 console.log('[GENERATING docs/REPORTS.md]');
@@ -9,6 +11,7 @@ const loc = JSON.parse(fs.readFileSync(`${__dirname}/sloc-report.json`, 'utf8'))
 const locTests = JSON.parse(fs.readFileSync(`${__dirname}/sloc-tests-report.json`, 'utf8')); // this file is generated (see package.json)
 const jest = JSON.parse(fs.readFileSync(`${__dirname}/jest-report.json`, 'utf8')); // this file is generated (see package.json)
 const esl: ESLint[] = JSON.parse(fs.readFileSync(`${__dirname}/eslint-report.json`, 'utf8')); // this file is generated (see package.json)
+const attw: Attw = JSON.parse(fs.readFileSync(`${__dirname}/attw-report.json`, 'utf8')); // this file is generated (see package.json)
 
 interface ESLint {
     "filePath": string,
@@ -47,6 +50,28 @@ const eslintSummary = esl.reduce<ESLint.Summary>((prev, curr) => {
     errorCount: 0,
     warningCount: 0
 })
+
+type Attw = {
+    analysis: {
+        problems: {
+            [key in AttwTypes.ProblemKind]: [
+                {
+                    kind: AttwTypes.ProblemKind,
+                    entrypoint: string, // '.'
+                    resolutionKind: AttwTypes.ResolutionKind
+                }
+            ]
+        }
+    }
+}
+
+const attProblems = Object.values(attw.analysis.problems).flatMap(problem => problem)
+    .reduce((group, { kind, resolutionKind }) => {
+        group.get(resolutionKind)?.push(kind)
+            ?? group.set(resolutionKind, [kind]);
+        return group;
+    }, new Map<AttwTypes.ResolutionKind, AttwTypes.ProblemKind[]>());
+const attwSize = [...attProblems.values()].flatMap(p => p).length;
 
 /**
  * Generate docs/REPORTS.md
@@ -110,6 +135,19 @@ var myChart = new Chart(ctx, {
     }
 });
 </script>
+
+## Exports
+
+**${attwSize === 0 ? '✅': '❌'} &nbsp; ${attwSize} problem${attwSize === 1 ? '': 's'}**
+
+|Resolution|Kind|
+|----------|----|
+${(['node10', 'node16-cjs', 'node16-esm', 'bundler'] as AttwTypes.ResolutionKind[]).map(res =>
+    `|${res}|${attProblems.get(res) ? (attProblems.get(res) ?? []).map(res => {
+        const { emoji, docsUrl, title } = AttwProblems.problemKindInfo[res];
+        return emoji + `[${title}](${docsUrl})` ;
+    }).join('<br/>') : '✅'}|
+`).join('')}
 
 ## Linter
 
