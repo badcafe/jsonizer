@@ -1,84 +1,3 @@
-/**
- * ## Hold the registry of classes
- * 
- * The purpose of Jsonizer's namespaces is to let classes **knowing** their
- * fully qualified name.
- * 
- * > Javascript and Typescript can group items together under namespaces,
- * > which lead roughly to a hierarchy of objects, but the items themselves
- * > when they are classes don't have the knowledge of the hierarchy they
- * > belong to.
- * 
- * Each class has its own identity but in order **to refer them**
- * by name properly it is necessary to introduce namespaces.
- * 
- * A namespace is mandatory for example to refer 2 classes
- * with the same name, e.g. `Category` (of a product) and
- * `Category` (of a movie).
- * 
- * A namespace have to be unique within an application, therefore
- * classes that are designed to be exposed in a library should
- * be decorated with a universal unique namespace identifier,
- * e.g. `org.example.myApp`. Conversely, it is enough for
- * a standalone application to group subordinate classes
- * together using relative namespaces.
- * 
- * * using a universal unique namespace identifier :
- * ```
- * ⓐNamespace('org.example.myApp')
- * class Foo {}
- *      // 👆 qualified name set to 'org.example.myApp.Foo'
- * ```
- * * using relative namespaces :
- * ```
- * ⓐNamespace(Product)
- * class Category {}
- *      // 👆 qualified name set to 'Product.Category'
- * ```
- * * 
- * ```
- * ⓐNamespace(Movie)
- * class Category {}
- *      // 👆 qualified name set to 'Movie.Category'
- * ```
- * 
- * In the example above, even if an app imports 2 classes
- * with the same name `Product`, it is still possible to
- * relocate one (or both) of them :
- * 
- * ```
- * import { Product as Product1 } from './myApp';
- * import { Product as Product2 } from 'someLib';
- * ⓐNamespace('org.example.myApp')(Product1)
- *     // qualified name               👆
- *     // set to 'org.example.myApp.Product' 
- * ⓐNamespace('com.example.products')(Product2)
- *     // qualified name                  👆
- *     // set to 'com.example.products.Product' 
- * ```
- * 
- * By transitivity, the `Category` is relocated to
- * `org.example.myApp.Product.Category`
- * 
- * > ℹ️  This is unrelated to Typescript namespaces !
- * 
- * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=namespaces)
- * 
- * ## Code splitting (lazy loading)
- * 
- * Modern Javascript bundlers allow in some circumstances
- * to split the code in several files that will be loaded
- * on demand (client side).
- *
- * Ensure that the code that do register each class is
- * visited before any registry lookup, otherwise you
- * might have mismatch lookups.
- * 
- * Typically, this can be done by importing them in the
- * app entry point.
- * 
- * @module
- */
 import 'reflect-metadata';
 import { namespace, Errors, Class, Ext, IS_STRING, CHILDREN, setNamespaceService } from './base'; // 'npm:@badcafe/jsonizer'
 
@@ -134,6 +53,19 @@ import { namespace, Errors, Class, Ext, IS_STRING, CHILDREN, setNamespaceService
  * ⓐNamespace('')
  * class Corge {}
  *     // 👆 qualified name set to 'Corge'
+ * ```
+ * 
+ * ## Usage on interfaces and type aliases
+ * 
+ * > The following requires to be compiled with `@badcafe/ts-plugin`
+ * 
+ * ```typescript
+ * interface Person {
+ *     public name: string,
+ *     public birthDate: Date
+ * }
+ * 
+ * Namespace<Person>('org.example.myApp')() // 👈 bind the namespace to the interface
  * ```
  * 
  * @see [[Namespace.getClass]]

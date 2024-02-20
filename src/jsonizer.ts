@@ -641,6 +641,34 @@ export interface Replacer<Type = any> {
  * * Bound the created reviver to the decorated class
  * * Set the decorated class in the default namespace if it has no namespace
  * 
+ * ## Usage on interfaces and type aliases
+ * 
+ * > The following requires to be compiled with `@badcafe/ts-plugin`
+ * 
+ * ```typescript
+ * interface Person {
+ *     public name: string,
+ *     public birthDate: Date
+ * }
+ * 
+ * Reviver<Person>({
+ *     birthDate: Date // 👈  field mapper
+ * })() // 👈 bind the reviver to the interface
+ * ```
+ * 
+ * Or to get a reference to the reviver :
+ * 
+ * ```typescript
+ * interface Person {
+ *     public name: string,
+ *     public birthDate: Date
+ * }
+ * 
+ * const Person = Reviver<Person>({
+ *     birthDate: Date // 👈  field mapper
+ * })() // 👈 bind the reviver to the interface
+ * ```
+ * 
  * @paramType Target - The actual class to revive
  * @paramType Source - The JSON representation of `Target` is by default the structural `Target` itself
  * 
@@ -659,6 +687,7 @@ export function Reviver<
     mappers: Mappers<Target, Source, Any, Self, Delim>
 ): <Type extends null | Class = null>(target?: Type) => Type extends null
     ? Class<Target> // when omitted, return the generated class
+        & { (this: any, key: string, value: any): Target }
     : void // when used as decorator
 {
     return ((target: Class) => { // when target is missing, a generated class is passed
