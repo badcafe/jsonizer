@@ -655,8 +655,16 @@ export function Reviver<
     Any extends string = '*',
     Self extends string = '.',
     Delim extends string = Source extends Array<any> ? '-' : '/'
->(mappers: Mappers<Target, Source, Any, Self, Delim>): (target: Class) => void {
-    return (target: Class) => {
+>(
+    mappers: Mappers<Target, Source, Any, Self, Delim>
+): <Type extends null | Class = null>(target?: Type) => Type extends null
+    ? Class<Target> // when omitted, return the generated class
+    : void // when used as decorator
+{
+    return ((target: Class) => { // when target is missing, a generated class is passed
+        if (! target) {
+            throw new TypeError('Missing Reviver target ; pass a class or see @badcafe/ts-plugin');
+        }
         // set in the default namespace if it was not already in a namespace
         if (! Namespace.hasNamespace(target)) {
             Namespace('')(target);
@@ -669,7 +677,7 @@ export function Reviver<
         );
         return target; // when not used as a decorator,
                        // for getting back a generated class (see @badcafe/ts-plugin)
-    }
+    }) as any
 }
 
 /**

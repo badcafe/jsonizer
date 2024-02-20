@@ -140,8 +140,16 @@ import { namespace, Errors, Class, Ext, IS_STRING, CHILDREN, setNamespaceService
  * @see [[Namespace.getQualifiedName]]
  * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=namespaces)
  */
-export function Namespace(ns: Class & Ext | string): (target: Class) => void {
-    return (target: Class & Ext) => {
+export function Namespace<Target>(
+    ns: Class & Ext | string
+): <Type extends null | Class = null>(target?: Type) => Type extends null
+    ? Class<Target> // when omitted, return the generated class
+    : void // when used as decorator
+{
+    return ((target: Class & Ext) => {
+        if (! target) {
+            throw new TypeError('Missing Namespace target ; pass a class or see @badcafe/ts-plugin');
+        }
         // remove previous qname from registry
         unregisterClass(target);
         unregisterTree(target);
@@ -182,7 +190,7 @@ export function Namespace(ns: Class & Ext | string): (target: Class) => void {
         registerTree(target);
         return target; // when not used as a decorator,
                        // for getting back a generated class (see @badcafe/ts-plugin)
-    }
+    }) as any
 }
 
 const REGISTRY = Symbol.for(`${namespace}.Namespace.Registry`);
