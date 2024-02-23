@@ -1493,7 +1493,8 @@ In Asynchronizer, a new component called a data transfer handler (DTH) is used t
 export namespace Person {
     // see Hobby class definition in previous example
 
-    export abstract class DTH {  // 👈  a Data Transfer Handler
+    @Namespace(Person)
+    export abstract class $ {  // 👈  a Data Transfer Handler
         getPersonByName(name: string): Person // well, I didn't set an ID on Person 🥴
         getPersonsByBirthDate(date: Date): Person[]
         getPersonsWithHobby(hobby: string[], startDate: Date): Person[]
@@ -1507,9 +1508,9 @@ Applications made with Asynchronizer are usually isomorphic applications with at
 [APP_ROOT]
     ┣━myApp-shared      contains the classes definition with their DTH
     ┃                                           (the snippet code above)
-    ┣━myApp-client      is the client app ; it will use `Person.DTH`
+    ┣━myApp-client      is the client app ; it will use `Person.$`
     ┃                                               to ask for the data
-    ┗━myApp-server      is the server app ; it will implement `Person.DTH`
+    ┗━myApp-server      is the server app ; it will implement `Person.$`
                                                     to respond to the client
 ```
 
@@ -1521,14 +1522,14 @@ const ws = ... // create a client web socket for the path '/ws'
 // create a channel and get its transfer handler
 const th = SocketClientChannel.get(ws).transferHandler(); // 👈  1 line conf for Asynchronizer
 // create a socket client proxy to send messages
-const personDTH = th.bindSender(Person.DTH); // a sender is a stateless singleton
+const personService = th.bindSender(Person.$); // a sender is a stateless singleton
 // send messages on button click
 someButton.addEventListener('click', async ev => {
     ev.preventDefault();
     // Asynchronizer turns the RPC function
     //    to an async function 👇
-    const persons = await personDTH.getPersonsByBirthDate(someDate);
-    //    👆 Asynchronizer transparently                     👆 
+    const persons = await personService.getPersonsByBirthDate(someDate);
+    //    👆 Asynchronizer transparently                       👆 
     //                   revive the Person[]     and stringify the date
     renderHTMLPersonsView(persons);
     return false;
@@ -1542,7 +1543,7 @@ Server side, we have to implement the RPC functions of the interface :
 const ws = ... // create and configure a web socket server...
 const th = SocketServerChannel.get(ws, '/ws').transferHandler(); // 👈  1 line conf for Asynchronizer
 // receives messages from the client
-th.bindReceiver(Person.DTH, { // a receiver is a stateless singleton
+th.bindReceiver(Person.$, { // a receiver is a stateless singleton
  // 👇 Asynchronizer turns the RPC functions to async functions
     async getPersonsByBirthDate(date) {
                               // 👆 Asynchronizer transparently revive the date...
@@ -1561,7 +1562,7 @@ th.bindReceiver(Person.DTH, { // a receiver is a stateless singleton
 
 Above :
 
-* the types are inferred from the signature of the DTH interface,
+* the types are inferred from the signature of the DTH methods,
 * and Jsonizer transparently revive the arguments to the expected objects instances.
 
-In fact, when using Asynchronizer, you just have to decorate your classes with `@Reviver` and `@Namespace`, and your instances will be revived client-side and server-side thanks to Jsonizer.
+In fact, when using Asynchronizer, you just have to decorate your model classes with `@Reviver` and `@Namespace`, and your instances will be revived client-side and server-side thanks to Jsonizer.

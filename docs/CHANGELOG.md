@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 9.0.1
+
+* Fix types for usage with `@badcafe/ts-plugin`
+
 ## 9.0.0
 
 * Upgrade libs
