@@ -1137,7 +1137,8 @@ namespace internal {
                         // mapper is now a reviver
                         // make the lookup done once :
                         if (funMapper) {
-                            (mappers as any)[key] = funMapper;
+                            // FIXME : why the next (commented) line doesn't work any longer ???
+                            // (mappers as any)[key] = funMapper;
                             mapper = funMapper;
                         } // else case of Self : mapper could be the function instance builder
                     }
