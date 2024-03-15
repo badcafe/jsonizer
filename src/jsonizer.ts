@@ -1319,7 +1319,19 @@ namespace internal {
                 // now, the host object
                 if (selfMapper) {
                     // apply builder
-                    return selfMapper.call(stack, json);
+                    try {
+                        return selfMapper.call(stack, json);
+                    } catch (err) {
+                        if (err instanceof TypeError 
+                            && err.message.startsWith('Class constructor')
+                            && err.message.endsWith('cannot be invoked without \'new\'')
+                        ) {
+                            // 'Class constructor Foo cannot be invoked without 'new''
+                            return json as any; // as-is
+                        } else { // not mine
+                            throw err;
+                        }
+                    }
                 } else {
                     // as-is
                     return json as any as Target;
