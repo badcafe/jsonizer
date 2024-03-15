@@ -1227,7 +1227,10 @@ namespace internal {
                                     // it's already done
                                     mappers = mapper as any;
                                 }
-                            } else { // else it is assumed to be a builder
+                            } else if (classMapper) { // behave as Jsonizer.Self.Identity
+                                // a class without {'.': builder} : DON'T SET IT AS selfMapper
+                                mapper = undefined as any;
+                            } else { // it is assumed to be a builder
                                 classMapper = undefined; // it is not {'.': Foo} but {'.': () => new Foo()}
                             }
                             // classMapper participates to the current for loop iteration
