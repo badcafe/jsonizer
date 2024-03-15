@@ -1,4 +1,4 @@
-import { Jsonizer, Namespace, Reviver } from "../src";
+import { Class, Jsonizer, Namespace, Reviver } from "../src";
 import { Category } from "./userGuide.namespaces.jsonizer.movie";
 
 describe('Operations with Revivers', () => {
@@ -147,6 +147,59 @@ describe('Operations with Revivers', () => {
         });
     })
 
+    describe('Revive interface with class', () => {
+        interface Agent {
+            name: string,
+            birthDate: Date
+        }
+        // mimick @badcafe/ts-plugin
+        const Agent: Class<Agent> & ((this: any, key: string, value: any) => Agent) = Reviver<Agent>({
+            birthDate: Date
+        })(class Agent {}) as any;
+
+        @Reviver<Agents>({
+            chief: Agent,
+            agents: {
+                '*': Agent
+            }
+        })
+        class Agents {
+            chief!: Agent
+            agents!: Agent[]
+        }
+
+        const bob: Agent = {
+            name: 'Bob',
+            birthDate: new Date('1998-10-21')
+        };
+        const agents = new Agents();
+        agents.chief = bob;
+        agents.agents = [bob];
+        const jsonAgent = JSON.stringify(bob);
+        const jsonAgents = JSON.stringify(agents);
+        const jsonAgentsArray = JSON.stringify(agents.agents);
+        test('revive interface', () => {
+            const agentRevivedFromJson = JSON.parse(jsonAgent, Reviver.get(Agent));
+            expect(agentRevivedFromJson).toEqual(bob);
+        });
+        test('revive {interface[]}', () => {
+            const agentsRevivedFromJson = JSON.parse(jsonAgents, Reviver.get(Agents));
+            expect(agentsRevivedFromJson).toEqual({chief: bob, agents: [bob]});
+        });
+        test('revive interface[]', () => {
+            const AgentsReviver = Reviver.get<Agents>(Agents);
+            const AgentsSubReviver = AgentsReviver['agents'] as Reviver<Agent[]>;
+            const agentsArrayRevivedFromJson = JSON.parse(jsonAgentsArray, AgentsSubReviver);
+            expect(agentsArrayRevivedFromJson).toEqual([bob]);
+        });
+        test('revive interface[0]', () => {
+            const AgentsReviver = Reviver.get<Agents>(Agents);
+            const AgentsSubReviver = AgentsReviver['agents'] as Reviver<Agent[]>;
+            const AgentReviver = AgentsSubReviver[0] as Reviver<Agent>;
+            const agentItemRevivedFromJson = JSON.parse(jsonAgent, AgentReviver);
+            expect(agentItemRevivedFromJson).toEqual(bob);
+        });
+    });
 });
 
 describe('Revivers generation', () => {
