@@ -1,5 +1,10 @@
 # Jsonizer Changelog
 
+### 9.0.2
+
+* Bug fix: Prevent class call by making "identity" the default builder.
+* Replace ts-node by tsx
+
 ### 9.0.1
 
 * Fix types for usage with `@badcafe/ts-plugin`

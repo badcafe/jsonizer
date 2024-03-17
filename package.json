@@ -36,7 +36,7 @@
     "site:prepare:reports:jest": "jest --noStackTrace --silent --json --outputFile='scripts/jest-report.json' || :",
     "site:prepare:reports:attw": "attw --pack --format json . > scripts/attw-report.json",
     "site:prepare:reports": "npm run site:prepare:reports:sloc && npm run site:prepare:reports:sloc:tests && npm run site:prepare:reports:eslint && npm run site:prepare:reports:jest && npm run site:prepare:reports:attw",
-    "site:assemble:reports": "ts-node --project scripts/tsconfig.json scripts/reports.mts",
+    "site:assemble:reports": "node --import tsx scripts/reports.mts",
     "site:assemble:api": "typedoc --tsconfig tsconfig.json src",
     "site:assemble": "npm run site:assemble:reports && npm run site:assemble:api",
     "presite": "npm run site:prepare:reports && npm run site:assemble",
@@ -86,7 +86,7 @@
     "rollup-plugin-typescript2": "^0.36.0",
     "sloc": "^0.2.1",
     "ts-jest": "^29.1.2",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.7.1",
     "typedoc": "^0.25.7",
     "typescript": "^5.3.3"
   },
@@ -101,7 +101,7 @@
     "preset": "ts-jest/presets/default",
     "testEnvironment": "node",
     "transform": {
-      "^.+\\.tsx?$": [ 
+      "^.+\\.tsx?$": [
         "ts-jest",
         {
           "tsconfig": "test/tsconfig.json",

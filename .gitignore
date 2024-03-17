@@ -7,3 +7,4 @@ docs/REPORTS.md
 scripts/*-report.json
 build
 dist
+badcafe-jsonizer-*.tgz
