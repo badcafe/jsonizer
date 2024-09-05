@@ -234,6 +234,23 @@ describe('USER_GUIDE.md examples', () => {
             const personFromJson = JSON.parse(personJson, personReviver);
             verifyPerson(Person, personFromJson);
         });
+        test('Self endorse', () => {
+            @Reviver<Person>({
+                '.': Jsonizer.Self.endorse(Person), // 👈 plug the class to the instance
+                birthDate: Date
+            })
+            class Person {
+                name?: string
+                birthDate?: Date
+        }
+            const person = new Person();
+            person.name = 'Bob';
+            person.birthDate = new Date('1998-10-21');
+            const personJson = JSON.stringify(person);
+            const personReviver = Reviver.get(Person); // 👈  extract the reviver from the class
+            const personFromJson = JSON.parse(personJson, personReviver);
+            verifyPerson(Person, personFromJson);
+        });
         test('No @ decorator', () => {
             class Person {
                 constructor(

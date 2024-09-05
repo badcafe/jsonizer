@@ -1,5 +1,10 @@
 # Jsonizer Changelog
 
+### 9.0.3
+
+* Add `Jsonizer.Self.endorse()`
+* More reliable control to prevent class call
+
 ### 9.0.2
 
 * Bug fix: Prevent class call by making "identity" the default builder.

@@ -972,6 +972,30 @@ export namespace Jsonizer {
             }
         }
 
+        /**
+         * A mapping function for the `Self` key `'.'` that
+         * endorse the given class.
+         * 
+         * ```
+         * { '.': Jsonizer.Self.endorse(Foo) }
+         * ```
+         * is the same as
+         * ```
+         * { '.': args => {
+         *     Object.setPrototypeOf(args, clazz.prototype);
+         *     return foo;
+         * }
+         * ```
+         * 
+         * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=self-endorse)
+         */
+        export function endorse<T>(clazz: Class.Concrete<T>): (args: object) => T {
+            return (args: object) => {
+                Object.setPrototypeOf(args, clazz.prototype);
+                return args as T;
+            }
+        }
+
     }
 
 }
@@ -1320,26 +1344,13 @@ namespace internal {
                         }
                     }
                 }
-                // now, the host object
                 if (selfMapper) {
                     // apply builder
-                    try {
+                    if (! Reflect.getMetadata(Reviver.$, selfMapper)) {
                         return selfMapper.call(stack, json);
-                    } catch (err) {
-                        if (err instanceof TypeError 
-                            && err.message.startsWith('Class constructor')
-                            && err.message.endsWith('cannot be invoked without \'new\'')
-                        ) {
-                            // 'Class constructor Foo cannot be invoked without 'new''
-                            return json as any; // as-is
-                        } else { // not mine
-                            throw err;
-                        }
-                    }
-                } else {
-                    // as-is
-                    return json as any as Target;
+                    } // else it is the class that holds the reviver function
                 }
+                return json as any as Target;
             } finally {
                 stack.pop();
             }

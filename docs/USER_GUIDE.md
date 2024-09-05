@@ -317,6 +317,23 @@ class Person {  // no constructor, fields have to be assigned one by one
 }
 ```
 
+### Self endorse
+
+Finally, to let the incoming data endorse the class, use :
+
+```typescript
+@Reviver<Person>({
+    '.': Jsonizer.Self.endorse(Person), // 👈 plug the class to the instance
+    birthDate: Date
+})
+class Person {
+    name?: string,
+    birthDate?: Date
+}
+```
+
+> Be aware that this helper won't call the constructor, if any.
+
 ### No @ decorator
 
 Either you don't want to activate decorators in your project, or you want to bind a reviver to third-party classes or built-in classes, it is still possible to use `Reviver` as a 'normal' function :
