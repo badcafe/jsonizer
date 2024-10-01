@@ -937,7 +937,7 @@ export namespace Jsonizer {
          * ```
          * is the same as
          * ```
-         * { '.': args => new Foo(Object.values(args)) }
+         * { '.': args => new Foo(...Object.values(args)) }
          * ```
          * 
          * @see [User guide](https://badcafe.github.io/jsonizer/#/README?id=self-apply)
@@ -983,7 +983,7 @@ export namespace Jsonizer {
          * ```
          * { '.': args => {
          *     Object.setPrototypeOf(args, clazz.prototype);
-         *     return foo;
+         *     return args;
          * }
          * ```
          * 
