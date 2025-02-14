@@ -30,12 +30,11 @@ describe('Replacer', () => {
         expect(clone.name).toBe('Bob');
         expect(clone.date).toBeInstanceOf(Date);
         expect(clone.date.getTime()).toBe(bob.date.getTime());
-        console.log(clone);
+        // console.log(clone);
     });
     test('replacer() recursive', () => {
         const replace = Jsonizer.replacer();
         const res = replace('', { users: [bob] });
-console.log(res);
         expect(res.users[0][0]).toBe(bob.name);
         expect(res.users[0][1]).toBeInstanceOf(Date);
         expect(res.users[0][1].getTime()).toBe(bob.date.getTime());
@@ -47,6 +46,32 @@ console.log(res);
         expect(clone.users[0].name).toBe('Bob');
         expect(clone.users[0].date).toBeInstanceOf(Date);
         expect(clone.users[0].date.getTime()).toBe(bob.date.getTime());
-        console.log(clone);
+        // console.log(clone);
+    });
+
+    test('getReviver() with Error', () => {
+        const payload = [
+            {
+                req: false,
+                class: 'Issues.RPC',
+                prop: 'listForDoc',
+                token: 'theToken'
+            },
+            { err: new TypeError('Ooops !') }
+        ];
+        const replacer = Jsonizer.replacer();
+        const _ = JSON.stringify(payload, replacer);
+        const reviver = replacer.getReviver();
+        const jsonReviver = JSON.stringify(reviver);
+        console.log(reviver);
+        expect(jsonReviver).toBe('{".":"TypeError"}');
+    });
+
+    test('getReviver() empty', () => {
+        const payload = 42;
+        const replacer = Jsonizer.replacer();
+        const _ = JSON.stringify(payload, replacer);
+        const reviver = replacer.getReviver();
+        expect(reviver).toBeNull();
     });
 });
