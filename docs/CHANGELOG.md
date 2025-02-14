@@ -1,5 +1,11 @@
 # Jsonizer Changelog
 
+### 9.1.0
+
+* Allow (circular) references in the temporal dead zone to be deferred
+* Replace wrong IIFE in the doc with deferred reference
+* Upgrade dependencies
+
 ### 9.0.3
 
 * Add `Jsonizer.Self.endorse()`

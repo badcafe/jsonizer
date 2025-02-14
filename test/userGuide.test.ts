@@ -3,6 +3,8 @@ import { Jsonizer, Reviver, Class, Mappers, Namespace, Errors } from "../src";
 import { Category as MovieCategory } from './userGuide.namespaces.jsonizer.movie';
 import { Product as Product2 } from './userGuide.namespaces.jsonizer.product';
 import { Person } from './userGuide.dto';
+import { Person as PersonRef, Hobby as HobbyRef } from './userGuide.circular';
+import { Person as PersonCl } from './userGuide.namespace.typescript.class';
 
 // see README.md : all examples are here and tested
 
@@ -356,6 +358,18 @@ describe('USER_GUIDE.md examples', () => {
             expect(hobbyFromJson).toBeInstanceOf(Hobby);
             expect(hobbyFromJson.hobby).toBe('programming');
             expect(hobbyFromJson.startDate).toBeInstanceOf(Date);
+        });
+        test('Circular references', () => {
+            const hobby = new HobbyRef('programming', new Date('2021-01-01'));
+            const person = new PersonRef('Bob', new Date('1998-10-21'), [hobby]);
+            const personJson = JSON.stringify(person);
+            const personReviver = Reviver.get(PersonRef);
+            const personFromJson = JSON.parse(personJson, personReviver);
+            verifyPerson(PersonRef, personFromJson);
+            expect(personFromJson.hobbies).toHaveLength(1);
+            console.log(personFromJson.hobbies![0]);
+            expect(personFromJson.hobbies![0]).toBeInstanceOf(HobbyRef);
+            expect((personFromJson.hobbies![0] as any).startDate).toBeInstanceOf(Date);
         });
         test('Pass through (Identity)', () => {
             interface Hobby {
@@ -974,6 +988,18 @@ describe('USER_GUIDE.md examples', () => {
         // test('Typescript namespaces', () => {
         //     see readme.namespace.typescript.*.ts files
         // });
+        test('Typescript namespaces (class)', () => {
+            const hobby = new PersonCl.Hobby('programming', new Date('2021-01-01'));
+            const person = new PersonCl('Bob', new Date('1998-10-21'), [hobby]);
+            const personJson = JSON.stringify(person);
+            const personReviver = Reviver.get(PersonCl);
+            const personFromJson = JSON.parse(personJson, personReviver);
+            verifyPerson(PersonCl, personFromJson);
+            expect(personFromJson.hobbies).toHaveLength(1);
+            console.log(personFromJson.hobbies![0]);
+            expect(personFromJson.hobbies![0]).toBeInstanceOf(PersonCl.Hobby);
+            expect((personFromJson.hobbies![0] as any).startDate).toBeInstanceOf(Date);
+        });
     });
 
     describe('Reviving parsed data', () => {
