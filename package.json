@@ -2,6 +2,7 @@
   "name": "@badcafe/jsonizer",
   "version": "9.0.3",
   "description": "Structural reviving for JSON",
+  "main": "dist/index.cjs",
   "exports": {
     ".": {
       "import": {
