@@ -50,15 +50,7 @@ describe('Replacer', () => {
     });
 
     test('getReviver() with Error', () => {
-        const payload = [
-            {
-                req: false,
-                class: 'Issues.RPC',
-                prop: 'listForDoc',
-                token: 'theToken'
-            },
-            { err: new TypeError('Ooops !') }
-        ];
+        const payload = new TypeError('Ooops !');
         const replacer = Jsonizer.replacer();
         const _ = JSON.stringify(payload, replacer);
         const reviver = replacer.getReviver();
