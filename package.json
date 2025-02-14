@@ -86,10 +86,10 @@
     "rollup-plugin-dts": "^6.1.0",
     "rollup-plugin-typescript2": "^0.36.0",
     "sloc": "^0.2.1",
-    "ts-jest": "^29.1.2",
-    "tsx": "^4.7.1",
-    "typedoc": "^0.25.7",
-    "typescript": "^5.3.3"
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.19.2",
+    "typedoc": "^0.27.6",
+    "typescript": "^5.7.3"
   },
   "dependencies": {
     "reflect-metadata": "^0.2.1"
