@@ -408,6 +408,48 @@ class Person {
 }
 ```
 
+### Circular references
+
+When a `Person` refers a `Hobby` that refers a `Person`, Typescript handles correctly the circular references when they are referring the **type** of the classes.
+
+Conversely JSonizer mappings do refer classes as **values** : with a circular reference, it's impossible to handle a value not yet bound. This is a Javascript behaviour known as the [Temporal dead zone](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let#temporal_dead_zone_tdz) (TDZ).
+
+To get rid of this, JSonizer allow to **defer the resolution** with the help of an **arrow function with no arguments** :
+
+```typescript
+@Reviver<Person>({
+    '.': Jsonizer.Self.apply(Person),
+    birthDate: Date,
+    hobbies: {
+        // '*': Hobby // 👈  value not yet known
+        '*': () => Hobby  // 👈  deferring the resolution 
+                          //     of a class defined after
+    }
+})
+export class Person {
+    constructor(
+        public name: string,
+        public birthDate: Date,
+        public hobbies?: Hobby[] // 👈  this works because it's
+                                 //     just a type reference !
+    ) {}
+}
+
+@Reviver<Hobby>({
+    '.': Jsonizer.Self.apply(Hobby),
+    startDate: Date,
+    manager: Person // 👈  direct reference
+                    //     of a class defined before
+})
+export class Hobby {
+    constructor(
+        public hobby: string,
+        public startDate: Date,
+        public manager?: Person
+    ) {}
+}
+```
+
 ### Pass through (Identity)
 
 In any cases where you don't want a class but kept as-is the augmented data structure, you may create a pass-through class :
@@ -1122,7 +1164,8 @@ export namespace Person {
 }
 ```
 
-Using classes may lead to some chicken 🐔 and egg 🥚 issue that can be resolved easily with an [IIFE](https://developer.mozilla.org/en-US/docs/Glossary/IIFE) :
+Using classes may lead to some chicken 🐔 and egg 🥚 issue that can be resolved easily
+with a deferred reference ([see Circular references](#circular-references) )
 
 ```typescript
 @Namespace('org.example.peopleHobbies') // 👈  absolute namespace
@@ -1131,7 +1174,7 @@ Using classes may lead to some chicken 🐔 and egg 🥚 issue that can be resol
     birthDate: Date,
     hobbies: {
       //'*': Person.Hobby // 👈  symbol not yet known
-        '*': (() => Person.Hobby)() // 👈  IIFE to the rescue
+        '*': () => Person.Hobby // 👈  deferred reference
     }
 })
 export class Person { // 👈 "org.example.peopleHobbies.Person"

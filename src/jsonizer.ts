@@ -724,10 +724,37 @@ export namespace Reviver {
     /**
      * Get the reviver of a class.
      * 
-     * @param target The target class, by default will get the reviver's Reviver.
+     * @param target The target class or a deferred reference to the target class
+     *      e.g. `() => TheClass`,
+     *      by default will get the reviver's Reviver.
      */
-    export function get<T = Reviver>(target: Class<T> = internal.Reviver as any): Reviver<T> {
-        return Reflect.getMetadata($, target);
+    export function get<T = Reviver>(target: Class<T> | (() => Class<T>) = internal.Reviver as any): Reviver<T> {
+        // arguments[0] = target
+        // arguments[1] = hidden true, may be passed as 2nd argument
+        //                see internal.Reviver.revive()
+        let rev = Reflect.getMetadata($, target);
+        if (rev === false) {
+            // previous call set false, see below
+            return undefined as any;
+        } else if (! rev 
+            // if arguments[1] = true, do NOT resolve for { '.': () => new TheClass() }
+            && arguments[1] === undefined
+            && target instanceof Function 
+            // () => TheClass
+            && /^\(\) ?=>.*/.test(target.toString())
+            // it doesn't make sense to have a function that doesn't accept parameters
+            // therefore, we are sure to have a reference to a class
+        ) {
+            try {
+                // resolve the deferred reference () => TheClass
+                rev = Reflect.getMetadata($, (target as any)());
+            } catch (e) {
+            } finally {
+                // rebind or prevent further calls
+                Reflect.defineMetadata($, target, rev ?? false);
+            }
+        }
+        return rev;
     }
 
     /**
@@ -752,7 +779,7 @@ export namespace Reviver {
      * 
      * @see [[Namespace]]
      */
-    export type Reference = Class | string
+    export type Reference = Class | (() => Class) | string
 
 }
 
@@ -1238,7 +1265,9 @@ namespace internal {
                             // mapper is now a class
                         }
                         if (typeof mapper === 'function') { // !!! maybe a builder or a class decorated with @Reviver
-                            classMapper = ReviverAPI.get(mapper as any) as any;
+                            // we do have a builder because key === Self
+                            // to prevent unwanted deferred resolution, pass hidden 2nd argument true
+                            classMapper = (ReviverAPI.get as any)(mapper, true);
                             const itSelf = classMapper?.[Mappers.Jokers.$]?.[1] ?? '.';
                             if (classMapper?.[itSelf]) {
                                 mapper = classMapper[itSelf]!;

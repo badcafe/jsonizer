@@ -6,7 +6,7 @@ import { Reviver, Jsonizer, Namespace } from "../src";
     birthDate: Date,
     hobbies: {
       //'*': Person.Hobby // 👈  symbol not yet known
-        '*': (() => Person.Hobby)()
+        '*': () => Person.Hobby // 👈  deferred reference
     }
 })
 export class Person { // 👈 "org.example.peopleHobbies.Person"
