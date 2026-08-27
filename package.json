@@ -22,7 +22,7 @@
     "LICENSE.txt"
   ],
   "scripts": {
-    "test": "jest --runInBand --verbose",
+    "test": "jest --runInBand --verbose --coverage --collect-coverage-from='src/**/*.ts'",
     "test:watch": "jest --runInBand --watchAll",
     "test:file": "jest --",
     "check": "attw --pack .",
@@ -34,7 +34,7 @@
     "site:prepare:reports:sloc": "sloc -e tests --format json src/ > scripts/sloc-report.json",
     "site:prepare:reports:sloc:tests": "sloc --format json test > scripts/sloc-tests-report.json",
     "site:prepare:reports:eslint": "eslint -f json -o scripts/eslint-report.json src || :",
-    "site:prepare:reports:jest": "jest --noStackTrace --silent --json --outputFile='scripts/jest-report.json' || :",
+    "site:prepare:reports:jest": "jest --noStackTrace --silent --json --outputFile='scripts/jest-report.json' --coverage --collect-coverage-from='src/**/*.ts' --coverageReporters=json-summary --coverageReporters=html --coverageDirectory=scripts/coverage || :",
     "site:prepare:reports:attw": "attw --pack --format json . > scripts/attw-report.json",
     "site:prepare:reports": "npm run site:prepare:reports:sloc && npm run site:prepare:reports:sloc:tests && npm run site:prepare:reports:eslint && npm run site:prepare:reports:jest && npm run site:prepare:reports:attw",
     "site:assemble:reports": "node --import tsx scripts/reports.mts",

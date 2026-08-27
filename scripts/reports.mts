@@ -12,6 +12,7 @@ const locTests = JSON.parse(fs.readFileSync(`${__dirname}/sloc-tests-report.json
 const jest = JSON.parse(fs.readFileSync(`${__dirname}/jest-report.json`, 'utf8')); // this file is generated (see package.json)
 const esl: ESLint[] = JSON.parse(fs.readFileSync(`${__dirname}/eslint-report.json`, 'utf8')); // this file is generated (see package.json)
 const attw: Attw = JSON.parse(fs.readFileSync(`${__dirname}/attw-report.json`, 'utf8')); // this file is generated (see package.json)
+const coverage = JSON.parse(fs.readFileSync(`${__dirname}/coverage/coverage-summary.json`, 'utf8')); // this file is generated (see package.json)
 
 interface ESLint {
     "filePath": string,
@@ -162,6 +163,16 @@ ${esl.filter(file => ! file.filePath.endsWith('/index.ts'))
 `).join('')).join('')}
 ` /* end eslintSummary.problems === 0 */}
 
+## Coverage
+
+**${coverageIcon(coverage.total.lines.pct)} &nbsp; ${coverage.total.lines.pct}% of the lines** — [browse the detailed report](coverage/index.html ':ignore')
+
+| | Covered | Total | % |
+| - | -: | -: | -: |
+${(['statements', 'branches', 'functions', 'lines'] as const).map(kind =>
+    `| ${coverageIcon(coverage.total[kind].pct)} &nbsp; ${kind[0].toUpperCase()}${kind.slice(1)} | ${coverage.total[kind].covered} | ${coverage.total[kind].total} | **${coverage.total[kind].pct}%** |
+`).join('')}
+
 ## Tests
 
 |   | Tests suites | Tests |
@@ -202,6 +213,16 @@ ${tests.map((test: any) =>
 `;
 
 fs.writeFileSync('./docs/REPORTS.md', lines);
+
+// publish the browsable coverage report along with the site
+fs.rmSync('./docs/coverage', { recursive: true, force: true });
+fs.cpSync(`${__dirname}/coverage`, './docs/coverage', { recursive: true });
+fs.rmSync('./docs/coverage/coverage-summary.json', { force: true });
+
+/** green from 80%, orange from 50%, red below */
+function coverageIcon(pct: number) {
+    return pct >= 80 ? '✅' : pct >= 50 ? '🟠' : '❌';
+}
 
 /**
  * Display a position of a lint result :

@@ -432,6 +432,16 @@ export namespace Mappers {
                     if (prev.length > 0) {
                         const other = prev[prev.length -1];
                         const mapper = (mappers.mapper as any)[curr.key];
+                        if (mapper === undefined || (mappers.mapper as any)[other.key] === undefined) {
+                            // an entry without mapper (e.g. an EMPTY array/object
+                            // nested in the array : nothing to revive) : nothing
+                            // to merge either — without this guard, two adjacent
+                            // unmapped entries pass deepEquals(undefined, undefined)
+                            // and the merge below reads UNMAPPED_KEYS of undefined
+                            // (e.g. JSON.stringify([[], []], Jsonizer.replacer()))
+                            prev.push(curr);
+                            return prev;
+                        }
                         function missings(key: string, mapperHas: any, mapperHasNot: any) {
                             if (mapperHasNot[internal.Replacer.UNMAPPED_KEYS]?.has(key)) {
                                 // don't merge if the key MUST NOT be mapped (the more often a primitive)

@@ -4,7 +4,10 @@ node_modules
 *.log
 docs/api
 docs/REPORTS.md
+docs/coverage
 scripts/*-report.json
+scripts/coverage
+coverage
 build
 dist
 badcafe-jsonizer-*.tgz

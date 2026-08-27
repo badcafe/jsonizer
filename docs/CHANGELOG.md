@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 9.1.1
+
+* Bug fix: Adjacent EMPTY containers in an array have no mapper (nothing to revive) : the range optimizer must not try to merge them.
+
 ### 9.1.0
 
 * Allow (circular) references in the temporal dead zone to be deferred
