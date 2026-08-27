@@ -1,6 +1,6 @@
 {
   "name": "@badcafe/jsonizer",
-  "version": "9.1.1",
+  "version": "9.1.2",
   "description": "Structural reviving for JSON",
   "main": "dist/index.cjs",
   "exports": {
@@ -28,6 +28,7 @@
     "check": "attw --pack .",
     "compile": "tsc -b",
     "postcompile": "rollup -c",
+    "prepack": "npm run compile",
     "compile:test": "cd test ; tsc -b",
     "compile:version": "tsc -v",
     "eslint": "eslint src",

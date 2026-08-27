@@ -1,5 +1,9 @@
 # Jsonizer Changelog
 
+### 9.1.2
+
+* Build fix: Fix assert import in rollup.
+
 ### 9.1.1
 
 * Bug fix: Adjacent EMPTY containers in an array have no mapper (nothing to revive) : the range optimizer must not try to merge them.
